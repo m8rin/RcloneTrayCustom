@@ -31,7 +31,7 @@
         document.getElementById('delete-bookmark-button')
           .addEventListener('click', function (event) {
             event.preventDefault()
-            if (confirm('Are you sure you want to delete the bookmark?')) {
+            if (confirm('Вы уверены, что хотите удалить закладку?')) {
               $main.rclone.deleteBookmark($main.getProps().$name)
                 .then(window.close)
                 .catch(window.errorBox)

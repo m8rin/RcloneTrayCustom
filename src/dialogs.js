@@ -185,7 +185,8 @@ const editBookmark = function () {
  */
 const notification = function (message) {
   (new Notification({
-    body: message
+    body: message,
+    title: 'Уведомление'
   })).show()
 }
 
@@ -196,7 +197,7 @@ const errorMultiInstance = function () {
   // @TODO consider switch to notification (baloon),
   //       the problem is that Notifications are available after app is ready
   // (new Notification({ body: 'RcloneTray is already started and cannot be started twice.' })).show()
-  dialog.showErrorBox('', 'RcloneTray is already started and cannot be started twice.')
+  dialog.showErrorBox('', 'RcloneTray уже запущен и не может быть запущен дважды.')
 }
 
 /**
@@ -219,7 +220,7 @@ const uncaughtException = function (detail) {
     return choice === 0
   } else {
     // This message will be shown on very early stage before most of the app is loaded.
-    dialog.showErrorBox('Unexpected runtime error. RcloneTray cannot starts.', (detail || '').toString())
+    dialog.showErrorBox('Непредвиденная ошибка во время выполнения. Не удается запустить Rclonectray.', (detail || '').toString())
     app.focus()
     return true
   }
@@ -232,10 +233,10 @@ const uncaughtException = function (detail) {
 const confirmExit = function () {
   let choice = dialog.showMessageBox(null, {
     type: 'warning',
-    buttons: ['Yes', 'No'],
-    title: 'Quit RcloneTray',
-    message: 'Are you sure you want to quit?',
-    detail: 'There is active processes that will be terminated.'
+    buttons: ['Да', 'Нет'],
+    title: 'Выйти из RcloneTray',
+    message: 'Вы уверены, что хотите выйти?',
+    detail: 'Есть активные процессы, которые будут завершены.'
   })
   return choice === 0
 }
@@ -247,9 +248,9 @@ const confirmExit = function () {
 const missingRclone = function () {
   let choice = dialog.showMessageBox(null, {
     type: 'warning',
-    buttons: ['Go Rclone Website', 'Switch to bundled version', 'Quit'],
-    title: 'Error',
-    message: 'Seems that Rclone is not installed (or cannot be found) on your system.\n\nYou need to install Rclne to your system or to switch to use bundled version of Rclone.\n'
+    buttons: ['Перейти на веб-сайт Rclone', 'Переключитесь на комплектную версию', 'Выйти'],
+    title: 'Ошибка',
+    message: 'Похоже, что Rclone не установлен (или не может быть найден) в вашей системе.\n\nВам необходимо установить Rclone в свою систему или переключиться на использование встроенной версии Rclone.\n'
   })
 
   if (choice === 0) {
@@ -272,7 +273,7 @@ const init = function () {
   // @see https://electronjs.org/docs/api/menu#examples
   let template = [
     {
-      label: 'Edit',
+      label: 'Редактировать',
       submenu: [
         { role: 'redo' },
         { role: 'undo' },

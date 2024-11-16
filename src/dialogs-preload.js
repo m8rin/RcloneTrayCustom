@@ -68,7 +68,7 @@ window.messageBox = function (message) {
 window.confirm = function (message) {
   let choice = remoteElectron.dialog.showMessageBox(
     currentWindow, {
-      buttons: ['Yes', 'No'],
+      buttons: ['Да', 'Нет'],
       message: message
     })
   return choice === 0

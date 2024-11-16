@@ -220,7 +220,7 @@ const doCommandInTerminal = function (command) {
     const data = new Uint8Array(Buffer.from(command))
     fs.writeFile(tempCmdWrapper, data, function (err) {
       if (err) {
-        throw Error('Cannot open terminal')
+        throw Error('Не удается открыть терминал')
       } else {
         fs.chmodSync(tempCmdWrapper, 0o755)
         exec(`x-terminal-emulator -e "${tempCmdWrapper}"`)
@@ -253,11 +253,11 @@ class BookmarkProcessManager {
    */
   create (command) {
     if (!command || command.length < 0) {
-      throw Error('Broken Rclone command')
+      throw Error('Некорректная команда')
     }
     if (this.exists()) {
       console.error(`Trying to create new ${this.processName} over existing for ${this.bookmarkName}.`)
-      throw Error('There is already such process.')
+      throw Error('Такой процесс уже существует.')
     }
     let id = this.id
 
@@ -282,14 +282,14 @@ class BookmarkProcessManager {
     BookmarkProcessRegistry[id].process.on('close', function () {
       if (BookmarkProcessRegistry[id].data.OK) {
         if (BookmarkProcessRegistry[id].processName === 'download') {
-          dialogs.notification(`Downloading from ${BookmarkProcessRegistry[id].bookmarkName} is finished`)
+          dialogs.notification(`Скачивание из ${BookmarkProcessRegistry[id].bookmarkName} завершено`)
         } else if (BookmarkProcessRegistry[id].processName === 'upload') {
-          dialogs.notification(`Uploading to ${BookmarkProcessRegistry[id].bookmarkName} is finished`)
+          dialogs.notification(`Загрузка в ${BookmarkProcessRegistry[id].bookmarkName} завершена`)
         } else if (BookmarkProcessRegistry[id].processName === 'mount') {
-          dialogs.notification(`Unmounted ${BookmarkProcessRegistry[id].bookmarkName}`)
+          dialogs.notification(`Отмонтирован ${BookmarkProcessRegistry[id].bookmarkName}`)
         } else if (BookmarkProcessRegistry[id].processName.startsWith('serve_')) {
           let servingProtocolName = getAvailableServeProtocols()[BookmarkProcessRegistry[id].data.protocol]
-          dialogs.notification(`${servingProtocolName} server for ${BookmarkProcessRegistry[id].bookmarkName} is stopped`)
+          dialogs.notification(`${servingProtocolName} сервер для ${BookmarkProcessRegistry[id].bookmarkName} остановлен`)
         }
       }
       delete BookmarkProcessRegistry[id]
@@ -344,7 +344,7 @@ class BookmarkProcessManager {
     if (this.exists()) {
       BookmarkProcessRegistry[this.id].process.kill(signal || 'SIGTERM')
     } else {
-      throw Error('No such process')
+      throw Error('Такого процесса нет')
     }
   }
 
@@ -411,7 +411,7 @@ class BookmarkProcessManager {
 
     // When remote is mounted.
     if (/Mounting on "/.test(lineInfo.message)) {
-      dialogs.notification(`Mounted ${this.bookmarkName}`)
+      dialogs.notification(`Примонтирован ${this.bookmarkName}`)
       fireRcloneUpdateActions()
       this.set('OK', true)
       return
@@ -508,7 +508,7 @@ const updateBookmarksCache = function () {
           Cache.bookmarks[key].$name = key
         })
       } catch (err) {
-        throw Error('Problem reading bookmarks list.')
+        throw Error('Проблема с чтением списка закладок.')
       }
       fireRcloneUpdateActions()
     })
@@ -524,7 +524,7 @@ const updateProvidersCache = function () {
       try {
         providers = JSON.parse(providers)
       } catch (err) {
-        throw Error('Не удается прочитать список поставщиков услуг.')
+        throw Error('Не удается прочитать список провайдеров.')
       }
 
       Cache.providers = {}
@@ -813,13 +813,13 @@ const fireRcloneUpdateActions = function (eventName) {
 const sync = function (method, bookmark) {
   // Check supported method
   if (method !== 'upload' && method !== 'download') {
-    throw Error(`Unsupported sync method ${method}`)
+    throw Error(`Неподдерживаемый метод синхронизации ${method}`)
   }
 
   // Check if have set local path mapping.
   if (!('_rclonetray_local_path_map' in bookmark && bookmark._rclonetray_local_path_map)) {
-    console.error('Rclone', 'Sync', 'Local Path Map is not set for this bookmark', bookmark)
-    throw Error('Local Path Map is not set for this bookmark')
+    console.error('Rclone', 'Sync', 'Для этой закладки не задан локальный маппинг путей', bookmark)
+    throw Error('Для этой закладки не задан локальный маппинг путей')
   }
 
   // Do not allow syncing from root / or X:\, they are dangerous and can lead to damages.
@@ -827,7 +827,7 @@ const sync = function (method, bookmark) {
   let localPathMapParsed = path.parse(bookmark._rclonetray_local_path_map)
   if (!localPathMapParsed.dir) {
     console.error('Rclone', 'Sync', 'Trying to sync from/to root', bookmark)
-    throw Error('Operations with root drive are not permited because are dangerous, set more inner directory for bookmark directory mapping or use cli for this purpose.')
+    throw Error('Операции с корневым диском запрещены, поскольку они опасны, поэтому установите дополнительный внутренний каталог для сопоставления каталогов закладок или используйте cli для этой цели..')
   }
 
   let cmd = ['sync']
@@ -1032,7 +1032,7 @@ const updateBookmark = function (bookmark, values) {
 
     try {
       updateBookmarkFields(bookmark.$name, providerObject, values, bookmark)
-      dialogs.notification(`Bookmark ${bookmark.$name} is updated.`)
+      dialogs.notification(`Закладка ${bookmark.$name} обновлена.`)
       resolve()
     } catch (err) {
       reject(err)
@@ -1050,7 +1050,7 @@ const deleteBookmark = function (bookmark) {
     doCommand(['config', 'delete', bookmark.$name])
       .then(function () {
         BookmarkProcessManager.killAll(bookmark.$name)
-        dialogs.notification(`Bookmark ${bookmark.$name} is deleted.`)
+        dialogs.notification(`Закладка ${bookmark.$name} удалена.`)
         resolve()
       })
       .catch(reject)
@@ -1111,7 +1111,7 @@ const win32GetFreeLetter = function () {
   })
 
   if (!freeLetter) {
-    throw Error('Not available free drive letter')
+    throw Error('Недоступна свободная буква диска')
   }
 
   return freeLetter + ':'
@@ -1126,7 +1126,7 @@ const mount = function (bookmark) {
   let proc = new BookmarkProcessManager('mount', bookmark.$name)
 
   if (proc.exists()) {
-    throw Error(`Bookmark ${bookmark.$name} already mounted.`)
+    throw Error(`Закладка ${bookmark.$name} уже примонтирована.`)
   }
 
   let mountpoint
@@ -1141,7 +1141,7 @@ const mount = function (bookmark) {
   // Check if destination mountpoint is already used.
   const mountpointDirectoryExists = fs.existsSync(mountpoint)
   if (!mountpoint || (mountpointDirectoryExists && fs.readdirSync(mountpoint).length > 0)) {
-    throw Error(`Destination mountpoint "${mountpoint}" is not free.`)
+    throw Error(`Конечная точка монтирования "${mountpoint}" не свободна.`)
   }
   if (process.platform === 'linux' && !mountpointDirectoryExists) {
     fs.mkdirSync(mountpoint)
@@ -1342,7 +1342,7 @@ const openLocal = function (bookmark) {
       return shell.openExternal(`file://${bookmark._rclonetray_local_path_map}`)
     } else {
       console.error('Rclone', 'Local path does not exists.', bookmark._rclonetray_local_path_map, bookmark.$name)
-      throw Error(`Local path ${bookmark._rclonetray_local_path_map} does not exists`)
+      throw Error(`Локальный путь ${bookmark._rclonetray_local_path_map} не существует`)
     }
   } else {
     return false
@@ -1377,7 +1377,7 @@ const getAvailableServeProtocols = function () {
  */
 const serveStart = function (protocol, bookmark) {
   if (!getAvailableServeProtocols().hasOwnProperty(protocol)) {
-    throw Error(`Protocol "${protocol}" is not supported`)
+    throw Error(`Протокол "${protocol}" не поддерживается`)
   }
 
   bookmark = getBookmark(bookmark)
@@ -1385,7 +1385,7 @@ const serveStart = function (protocol, bookmark) {
   let proc = new BookmarkProcessManager(`serve_${protocol}`, bookmark.$name)
 
   if (proc.exists()) {
-    throw Error(`${bookmark.$name} is already serving.`)
+    throw Error(`${bookmark.$name} уже служит.`)
   }
 
   proc.create([
