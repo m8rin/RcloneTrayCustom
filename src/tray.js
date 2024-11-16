@@ -33,8 +33,8 @@ const icons = {}
 const fileExplorerLabel = process.platform === 'darwin'
   ? 'Finder'
   : process.platform === 'win32'
-    ? 'Explorer'
-    : 'File Browser'
+    ? 'Проводнике'
+    : 'Файловом менеджере'
 
 /**
  * Do action with bookmark
@@ -92,11 +92,11 @@ const generateBookmarkActionsSubmenu = function (bookmark) {
       type: 'submenu',
       submenu: [
         {
-          label: 'Fix config file',
+          label: 'Исправить конфигурационный файл',
           click: bookmarkActionRouter.bind(null, 'open-config')
         },
         {
-          label: 'Delete',
+          label: 'Удалить',
           enabled: !!bookmark.$name,
           click: bookmarkActionRouter.bind(bookmark, 'delete-bookmark')
         }
@@ -113,7 +113,7 @@ const generateBookmarkActionsSubmenu = function (bookmark) {
   // Mount
   let isMounted = rclone.getMountStatus(bookmark)
   template.submenu.push({
-    label: 'Mount',
+    label: 'Примонтировать',
     click: bookmarkActionRouter.bind(bookmark, 'mount'),
     checked: !!isMounted,
     enabled: isMounted === false
@@ -121,11 +121,11 @@ const generateBookmarkActionsSubmenu = function (bookmark) {
   if (isMounted !== false) {
     template.submenu.push(
       {
-        label: 'Unmount',
+        label: 'Отмонтировать',
         click: bookmarkActionRouter.bind(bookmark, 'unmount')
       },
       {
-        label: `Open In ${fileExplorerLabel}`,
+        label: `Открыть в ${fileExplorerLabel}`,
         enabled: !!isMounted,
         click: bookmarkActionRouter.bind(bookmark, 'open-mounted')
       }
@@ -146,41 +146,41 @@ const generateBookmarkActionsSubmenu = function (bookmark) {
       },
       {
         type: 'checkbox',
-        label: 'Download',
+        label: 'Скачать',
         enabled: !isAutomaticUpload && !isUpload && !isDownload,
         checked: isDownload,
         click: bookmarkActionRouter.bind(bookmark, 'download')
       },
       {
         type: 'checkbox',
-        label: 'Upload',
+        label: 'Загрузить',
         enabled: !isAutomaticUpload && !isUpload && !isDownload,
         checked: isUpload,
         click: bookmarkActionRouter.bind(bookmark, 'upload')
       },
       {
         type: 'checkbox',
-        label: 'Automatic Upload',
+        label: 'Автоматическая загрузка',
         checked: isAutomaticUpload,
         click: bookmarkActionRouter.bind(bookmark, 'toggle-automatic-upload')
       })
 
     if (isDownload) {
       template.submenu.push({
-        label: 'Stop Downloading',
+        label: 'Остановить загрузку',
         click: bookmarkActionRouter.bind(bookmark, 'stop-downloading')
       })
     }
 
     if (isUpload) {
       template.submenu.push({
-        label: 'Stop Uploading',
+        label: 'Прекратить загрузку',
         click: bookmarkActionRouter.bind(bookmark, 'stop-uploading')
       })
     }
 
     template.submenu.push({
-      label: 'Show In Finder',
+      label: 'Показать в поиске',
       click: bookmarkActionRouter.bind(bookmark, 'open-local')
     })
   }
@@ -212,7 +212,7 @@ const generateBookmarkActionsSubmenu = function (bookmark) {
 
       template.submenu.push({
         type: 'checkbox',
-        label: `Serve ${availableServingProtocols[protocol]}`,
+        label: `Обслуживать ${availableServingProtocols[protocol]}`,
         click: bookmarkActionRouter.bind(bookmark, 'serve-start', protocol),
         enabled: servingURI === false,
         checked: !!servingURI
@@ -221,11 +221,11 @@ const generateBookmarkActionsSubmenu = function (bookmark) {
       if (servingURI !== false) {
         template.submenu.push(
           {
-            label: 'Stop',
+            label: 'Остановить',
             click: bookmarkActionRouter.bind(bookmark, 'serve-stop', protocol)
           },
           {
-            label: `Open "${servingURI}"`,
+            label: `Открыть "${servingURI}"`,
             click: bookmarkActionRouter.bind(bookmark, 'open-web-browser', servingURI),
             enabled: !!servingURI
           }
@@ -248,7 +248,7 @@ const generateBookmarkActionsSubmenu = function (bookmark) {
         type: 'separator'
       },
       {
-        label: 'Console Browser',
+        label: 'Консоль Браузера',
         click: bookmarkActionRouter.bind(bookmark, 'open-ncdu')
       }
     )
@@ -263,7 +263,7 @@ const generateBookmarkActionsSubmenu = function (bookmark) {
       type: 'separator'
     },
     {
-      label: 'Edit',
+      label: 'Редактировать',
       enabled: !isConnected,
       click: dialogs.editBookmark.bind(bookmark)
     }
@@ -312,7 +312,7 @@ const refreshTrayMenu = function () {
   let isConnected = false
 
   menuItems.push({
-    label: 'New Bookmark',
+    label: 'Новая закладка',
     click: dialogs.addBookmark,
     accelerator: 'CommandOrControl+N'
   })
@@ -337,18 +337,19 @@ const refreshTrayMenu = function () {
       type: 'separator'
     },
     {
-      label: 'Preferences',
+      label: 'Настройки',
       click: dialogs.preferences,
       accelerator: 'CommandOrControl+,'
     },
-    {
-      label: 'About',
-      click: dialogs.about
-    },
+    // {
+    //   label: 'About',
+    //   click: dialogs.about
+    // },
     {
       type: 'separator'
     },
     {
+      label: 'Выход',
       accelerator: 'CommandOrControl+Q',
       role: 'quit'
     })

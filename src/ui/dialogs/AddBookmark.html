@@ -14,15 +14,23 @@
         let providers = window.$main.rclone.getProviders()
         let emptyOption = document.createElement('option')
         emptyOption.value = ''
-        emptyOption.innerHTML = '&mdash; Select Provider &mdash;'
+        emptyOption.innerHTML = '&mdash; Выберите провайдер &mdash;'
         optionsContainer.appendChild(emptyOption)
 
         for (let providerName in providers) {
-          let option = document.createElement('option')
-          option.value = providerName
-          option.innerText = providers[providerName].Description
-          option.providerObject = providers[providerName]
-          optionsContainer.appendChild(option)
+          if (providerName == 'webdav' || providerName == 'local') {
+            let option = document.createElement('option')
+            option.value = providerName
+
+            if (providerName == 'local') {
+              option.innerText = 'Локальный диск'
+            } else {
+              option.innerText = providers[providerName].Description
+            }
+
+            option.providerObject = providers[providerName]
+            optionsContainer.appendChild(option)
+          }
         }
 
         let range = document.createRange()
@@ -41,11 +49,16 @@
         providersListSelect.addEventListener('change', function () {
           if (this.selectedOptions.length > 0 && this.selectedOptions[0].hasOwnProperty('providerObject')) {
             let provider = this.selectedOptions[0].providerObject
-            document.title = `Create new ${provider.Name} Bookmark (${provider.Description})`
+
+            if (provider.Name == 'local') {
+              provider.Description = 'Локальный диск'
+            }
+
+            document.title = `Создать новую закладку (${provider.Description})`
             renderBookmarkSettings(bookmarkSettingsWrapper, this.value)
             providerSettingsWrapper.style.display = null
           } else {
-            document.title = 'Create new Bookmark'
+            document.title = 'Создать новую закладку'
             providerSettingsWrapper.style.display = 'none'
             bookmarkSettingsWrapper.innerHTML = ''
           }
@@ -73,7 +86,7 @@
 
       <div class="row">
         <div class="cell-left">
-          Connection Type
+          Тип подключения
         </div>
         <div class="cell-right">
           <select name="type" id="providers-list" style="width:20em;"></select>
@@ -85,10 +98,10 @@
         <div class="row">
           <div class="cell-left">
             <label>
-              Name
+              Имя
             </label>
             <div class="label-required">
-              required
+              обязательное
             </div>
           </div>
           <div class="cell-right">
@@ -100,7 +113,7 @@
 
         <div class="row right buttons">
           <button type="submit">
-            Add
+            Добавить
           </button>
         </div>
 

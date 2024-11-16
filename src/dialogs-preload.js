@@ -343,7 +343,7 @@ window.createOptionField = function (optionFieldDefinition, optionFieldNamespace
     } else if (optionFieldDefinition.$Type === 'directory') {
       let browseButton = document.createElement('button')
       browseButton.style.margin = '.3rem 0'
-      browseButton.innerText = 'Browse'
+      browseButton.innerText = 'Выбрать'
       browseButton.addEventListener('click', function (event) {
         event.preventDefault()
         window.selectDirectory(inputField.value, function (selectedDirectory) {
@@ -356,7 +356,7 @@ window.createOptionField = function (optionFieldDefinition, optionFieldNamespace
     } else if (optionFieldDefinition.$Type === 'file') {
       let browseButton = document.createElement('button')
       browseButton.style.margin = '.3rem 0'
-      browseButton.innerText = 'Browse'
+      browseButton.innerText = 'Выбрать'
       browseButton.addEventListener('click', function (event) {
         event.preventDefault()
         window.selectFile(inputField.value, function (selectedFile) {
@@ -450,7 +450,7 @@ window.createOptionField = function (optionFieldDefinition, optionFieldNamespace
   if ('Required' in optionFieldDefinition && optionFieldDefinition.Required) {
     row.className += ' required'
     let requiredHelpText = document.createElement('div')
-    requiredHelpText.innerText = 'required'
+    requiredHelpText.innerText = 'обязательное'
     requiredHelpText.className += ' label-required'
     th.appendChild(requiredHelpText)
   }
@@ -517,16 +517,16 @@ window.renderBookmarkSettings = function (placeholder, providerName, values) {
   let tabs = window.createTabsElement()
 
   if (connectionFields.length) {
-    tabs.addTab('Connection', window.createOptionsFields(connectionFields, 'options', values.options))
+    tabs.addTab('Соединение', window.createOptionsFields(connectionFields, 'options', values.options))
   }
 
   if (advancedFields.length) {
-    tabs.addTab('Advanced', window.createOptionsFields(advancedFields, 'options', values.options))
+    tabs.addTab('Расширенные настройки', window.createOptionsFields(advancedFields, 'options', values.options))
   }
 
   if (window.$main.settings.get('rclone_sync_enable')) {
     if (mappingFields.length) {
-      tabs.addTab('Mappings', window.createOptionsFields(mappingFields, 'options', values.options))
+      tabs.addTab('Маппинг', window.createOptionsFields(mappingFields, 'options', values.options))
     }
   }
 

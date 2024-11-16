@@ -123,27 +123,27 @@ const createNewDialog = function (dialogName, options, props) {
 /**
  * Show About dialog
  */
-const about = function () {
-  let aboutDialog = createNewDialog('About', {
-    $singleId: 1,
-    title: 'About',
-    width: 400,
-    height: 360,
-    minimizable: false,
-    alwaysOnTop: true,
-    acceptFirstMouse: true,
-
-    // Make the window sexy.
-    vibrancy: 'appearance-based',
-    titleBarStyle: 'hidden',
-    backgroundColor: null
-  })
-
-  // Close when loose focus, but only when non-dev because even the dev tool trigger the close.
-  if (!isDev) {
-    aboutDialog.on('blur', aboutDialog.close)
-  }
-}
+// const about = function () {
+//   let aboutDialog = createNewDialog('About', {
+//     $singleId: 1,
+//     title: 'About',
+//     width: 400,
+//     height: 360,
+//     minimizable: false,
+//     alwaysOnTop: true,
+//     acceptFirstMouse: true,
+//
+//     // Make the window sexy.
+//     vibrancy: 'appearance-based',
+//     titleBarStyle: 'hidden',
+//     backgroundColor: null
+//   })
+//
+//   // Close when loose focus, but only when non-dev because even the dev tool trigger the close.
+//   if (!isDev) {
+//     aboutDialog.on('blur', aboutDialog.close)
+//   }
+// }
 
 /**
  * Show Preferences dialog
@@ -352,7 +352,7 @@ init()
 
 // Module object.
 module.exports = {
-  about,
+  // about,
   editBookmark,
   addBookmark,
   preferences,

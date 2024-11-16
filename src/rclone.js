@@ -524,11 +524,16 @@ const updateProvidersCache = function () {
       try {
         providers = JSON.parse(providers)
       } catch (err) {
-        throw Error('Cannot read providers list.')
+        throw Error('Не удается прочитать список поставщиков услуг.')
       }
 
       Cache.providers = {}
-      providers.forEach(function (provider) {
+
+      const filteredProviders = providers.filter(provider =>
+        provider.Name === 'webdav' || provider.Name === 'local'
+      )
+
+      filteredProviders.forEach(function (provider) {
         if (UnsupportedRcloneProviders.indexOf(provider.Prefix) !== -1) {
           return false
         }
@@ -564,10 +569,10 @@ const updateProvidersCache = function () {
 
         // Add custom preferences.
         provider.Options.push({
-          $Label: 'Local Path',
+          $Label: 'Локальный путь',
           $Type: 'directory',
           Name: '_rclonetray_local_path_map',
-          Help: 'Set local directory that could coresponding to the remote root. This option is required in order to use upload and download functions.',
+          Help: 'Установите локальный каталог, который мог бы соответствовать удаленному корневому каталогу. Эта опция необходима для использования функций загрузки.',
           Required: false,
           Hide: false,
           Advanced: false
@@ -575,20 +580,33 @@ const updateProvidersCache = function () {
 
         // custom args
         provider.Options.push({
-          $Label: 'Custom Args',
+          $Label: 'Пользовательские аргументы',
           $Type: 'text',
           Name: '_rclonetray_custom_args',
           Help: `
-            Custom arguments separated by space or new-line.
-            Read more about options at https://rclone.org/${provider.Name}/#standard-options
+            Пользовательские аргументы, разделенные пробелом или новой строкой.
+            Подробнее о возможностях читайте на сайте https://rclone.org/${provider.Name}/#standard-options
           `,
           Required: false,
           Hide: false,
           Advanced: true
         })
 
+        // Удаляем не нужные нам поля
+        provider.Options = provider.Options.filter(function (item) {
+          return item.Name != 'bearer_token' && item.Name != 'bearer_token_command' && item.Name != 'unix_socket'
+             && item.Name != 'owncloud_exclude_mounts' && item.Name != 'owncloud_exclude_shares' && item.Name != "nextcloud_chunk_size"
+        })
+
         // Set system $Label
         provider.Options.map(function (item) {
+          // Исключаем варианты выбора у поля Вендор
+          if (item.Name == 'vendor') {
+            item.Examples = item.Examples.filter(function (vend) {
+              return vend.Value == 'other'
+            })
+          }
+
           if (!item.hasOwnProperty('$Label')) {
             item.$Label = item.Name
               .replace(/_/g, ' ')
@@ -596,6 +614,174 @@ const updateProvidersCache = function () {
                 return string.charAt(0).toUpperCase() + string.substr(1)
               })
               .trim()
+
+            const helpMessages = {
+              // Локальный диск
+              'Nounc': {
+                Help: 'Отключить преобразование UNC (длинных имен путей) в Windows.',
+                newLabel: 'Существительные'
+              },
+              'Copy Links': {
+                Help: 'Перейдите по символическим ссылкам и скопируйте указанный элемент.',
+                newLabel: 'Копировать ссылки'
+              },
+              'Links': {
+                Help: 'Переводите символические ссылки в обычные файлы с расширением ".rclonelink".',
+                newLabel: 'Ссылки'
+              },
+              'Skip Links': {
+                Help: 'Не предупреждать о пропущенных символических ссылках.\n\n' +
+                  'Этот флаг отключает сообщения предупреждения о пропущенных символических ссылках или точках соединения, так как вы явно признаете, что их следует пропустить.',
+                newLabel: 'Пропустить ссылки'
+              },
+              'Zero Size Links': {
+                Help: 'Предположите, что размер ссылок равен нулю (и читайте их вместо этого) (устарело).\n\n' +
+                  'Rclone раньше использовал размер Stat ссылок как размер ссылки, но это не срабатывает во многих случаях:\n\n' +
+                  '- Windows\n' +
+                  '- На некоторых виртуальных файловых системах (например, LucidLink)\n' +
+                  '- Android.\n\n' +
+                  'Поэтому rclone теперь всегда читает ссылку.',
+                newLabel: 'Ссылки нулевого размера'
+              },
+              'Unicode Normalization': {
+                Help: 'Примените нормализацию Unicode NFC к путям и именам файлов.\n\n' +
+                  'Этот флаг может быть использован для нормализации имен файлов в форму unicode NFC, которые считываются из локальной файловой системы.\n\n' +
+                  'Rclone обычно не изменяет кодировку имен файлов, которые считываются из файловой системы.\n\n' +
+                  'Это может быть полезно при использовании macOS, так как она обычно предоставляет декомпозированную (NFD) юникод, который в некоторых языках (например, корейском) отображается неправильно на некоторых ОС.\n\n' +
+                  'Обратите внимание, что rclone сравнивает имена файлов с нормализацией unicode в процедуре синхронизации, поэтому этот флаг обычно не следует использовать.',
+                newLabel: 'Нормализация Unicode'
+              },
+              'No Check Updated': {
+                Help: 'Не проверять, изменяются ли файлы во время загрузки.\n\n' +
+                  'Обычно rclone проверяет размер и время изменения файлов во время загрузки и прерывает выполнение с сообщением, ' +
+                  'которое начинается с "не могу скопировать - исходный файл обновляется", если файл изменяется во время загрузки.\n\n' +
+                  'Однако на некоторых файловых системах эта проверка времени изменения может не сработать (например, [Glusterfs #2206](https://github.com/rclone/rclone/issues/2206)), ' +
+                  'поэтому эту проверку можно отключить с помощью этого флага.\n\n' +
+                  'Если этот флаг установлен, rclone будет прилагать все усилия для передачи файла, который обновляется.\n\n' +
+                  'Если файл только дополняется (например, журнал), то rclone передаст файл журнала с размером, который он имел в первый раз, когда rclone его увидел.\n\n' +
+                  'Если файл изменяется полностью (не только дополняется), то передача может завершиться неудачей с ошибкой проверки хэша.\n\n' +
+                  'В деталях, после того как файл был обработан с помощью stat() в первый раз, мы:\n\n' +
+                  '- Передаем только размер, который указал stat\n' +
+                  '- Проверяем контрольную сумму только для размера, который указал stat\n' +
+                  '- Не обновляем информацию stat для файла.\n\n' +
+                  '**Примечание**: не используйте этот флаг на томе Windows Volume Shadow (VSS). По неизвестной причине файлы в VSS иногда показывают разные размеры по сравнению со списком каталогов (где первоначальное значение stat берется на Windows) и когда stat вызывается на них напрямую. Другие инструменты копирования всегда используют прямое значение stat, и установка этого флага отключит это.',
+                newLabel: 'Не проверять обновления'
+              },
+              'One File System': {
+                Help: 'Не пересекать границы файловых систем (только unix/macOS).',
+                newLabel: 'Одна файловая система'
+              },
+              'Case Sensitive': {
+                Help: 'Заставить файловую систему сообщать о себе как о чувствительной к регистру.\n\n' +
+                  'Обычно локальный бэкенд объявляет себя как нечувствительный к регистру на Windows/macOS и чувствительный к регистру для всего остального. Используйте этот флаг, чтобы переопределить выбор по умолчанию.',
+                newLabel: 'Чувствительность к регистру'
+              },
+              'Case Insensitive': {
+                Help: 'Заставить файловую систему сообщать о себе как о нечувствительной к регистру.\n\n' +
+                  'Обычно локальный бэкенд объявляет себя как нечувствительный к регистру на Windows/macOS и чувствительный к регистру для всего остального. Используйте этот флаг, чтобы переопределить выбор по умолчанию.',
+                newLabel: 'Нечувствительность к регистру'
+              },
+              'No Clone': {
+                Help: 'Отключить клонирование reflink для серверных копий.\n\n' +
+                  'Обычно, для локальных трансферов, rclone будет "клонировать" файл, когда это возможно, и вернется к "копированию", ' +
+                  'только когда клонирование не поддерживается.\n\n' +
+                  'Клонирование создает поверхностную копию (или "reflink"), которая изначально делит блоки с оригинальным файлом.\n\n' +
+                  'В отличие от "жесткой ссылки", два файла независимы, и ни один из них не повлияет на другой, если они будут изменены впоследствии.\n\n' +
+                  'Клонирование обычно предпочтительнее копирования, так как оно намного быстрее и по умолчанию является дедуплицированным (т.е. наличие двух идентичных файлов не потребляет больше места, чем наличие только одного). ' +
+                  'Однако для случаев, когда избыточность данных предпочтительнее, --local-no-clone можно использовать для отключения клонирования и принуждения "глубоких" копий.\n\n' +
+                  'В настоящее время клонирование поддерживается только при использовании APFS на macOS (поддержка других платформ может быть добавлена в будущем).',
+                newLabel: 'Без клонирования'
+              },
+              'No Preallocate': {
+                Help: 'Отключить предварительное выделение дискового пространства для переданных файлов.\n\n' +
+                  'Предварительное выделение дискового пространства помогает предотвратить фрагментацию файловой системы. Однако некоторые виртуальные файловые системы (такие как Google Drive File Stream) могут неправильно устанавливать фактический размер файла равным предварительно выделенному пространству, что приводит к сбоям проверки контрольной суммы и размера файла. Используйте этот флаг, чтобы отключить предварительное выделение.',
+                newLabel: 'Без предварительного выделения'
+              },
+              'No Sparse': {
+                Help: 'Отключить разреженные файлы для многопоточных загрузок.\n\n' +
+                  'На платформах Windows rclone будет создавать разреженные файлы при выполнении многопоточных загрузок. Это предотвращает долгие паузы на больших файлах, где ОС обнуляет файл. Однако разреженные файлы могут быть нежелательны, так как они вызывают фрагментацию диска и могут работать медленно.',
+                newLabel: 'Без разреженных файлов'
+              },
+              'No Set Modtime': {
+                Help: 'Отключить установку времени изменения.\n\n' +
+                  'Обычно rclone обновляет время изменения файлов после их загрузки. Это может вызвать проблемы с разрешениями на платформах Linux, когда пользователь, от имени которого работает rclone, не владеет загруженным файлом, например, при копировании на CIFS-монтирование, принадлежащее другому пользователю. Если эта опция включена, rclone больше не будет обновлять время изменения после копирования файла.',
+                newLabel: 'Без установки времени изменения'
+              },
+              'Time Type': {
+                Help: 'Установите, какой тип времени будет возвращен.\n\n' +
+                  'Обычно rclone выполняет все операции на mtime или времени изменения.\n\n' +
+                  'Если вы установите этот флаг, rclone будет возвращать время изменения в зависимости от того, что вы здесь установили. ' +
+                  'Так что если вы используете "rclone lsl --local-time-type ctime", вы увидите ctime в списке.\n\n' +
+                  'Если ОС не поддерживает возврат указанного time_type, rclone тихо заменит его на время изменения, которое поддерживают все ОС.\n\n' +
+                  '- mtime поддерживается всеми ОС\n\n' +
+                  '- atime поддерживается всеми ОС, кроме: plan9, js\n\n' +
+                  '- btime поддерживается только на: Windows, macOS, freebsd, netbsd\n\n' +
+                  '- ctime поддерживается всеми ОС, кроме: Windows, plan9, js. \n\n' +
+                  'Обратите внимание, что установка времени все равно установит время изменения, поэтому это полезно только для чтения.',
+                newLabel: 'Тип времени'
+              },
+
+              // WedDav
+              'Url': {
+                Help: 'URL-адрес http-хостинга, к которому нужно подключиться.',
+                newLabel: 'Url'
+              },
+              'Vendor': {
+                Help: 'Название веб-сайта/службы/программного обеспечения WebDAV, которые вы используете.',
+                newLabel: 'Вендор'
+              },
+              'User': {
+                Help: 'Имя пользователя.\n\nВ случае использования аутентификации NTLM имя пользователя должно быть в формате "Домен\\Пользователь".',
+                newLabel: 'Пользователь'
+              },
+              'Pass': {
+                Help: 'Пароль.',
+                newLabel: 'Пароль'
+              },
+              'Encoding': {
+                Help: 'Кодировка для серверной части.\n\n' +
+                  'Смотрите раздел [кодировка в обзоре] (/overview/#encoding) для получения дополнительной информации.',
+                newLabel: 'Кодировка'
+              },
+              'Headers': {
+                Help: 'Установите HTTP-заголовки для всех транзакций.\n\n' +
+                  'Используйте это для установки дополнительных HTTP-заголовков для всех транзакций.',
+                newLabel: 'Заголовки'
+              },
+              'Pacer Min Sleep': {
+                Help: 'Минимальное время ожидания между вызовами API.',
+                newLabel: 'Минимальное время ожидания'
+              },
+              // 'Nextcloud Chunk Size': {
+              //   Help: 'Размер блока загрузки Nextcloud.\n\n' +
+              //     'Мы рекомендуем настроить ваш инстанс NextCloud так, чтобы увеличить максимальный размер блока данных до 1 ГБ для повышения производительности загрузки.',
+              //   newLabel: 'Размер блока Nextcloud'
+              // },
+              // 'Owncloud Exclude Shares': {
+              //   Help: 'Исключить общие ресурсы Owncloud.',
+              //   newLabel: 'Исключение общих ресурсов Owncloud'
+              // },
+              // 'Owncloud Exclude Mounts': {
+              //   Help: 'Исключить хранилища, подключенные к Owncloud.',
+              //   newLabel: 'Исключение монтирования Owncloud'
+              // },
+              // 'Unix Socket': {
+              //   Help: 'Путь к доменному сокету unix, к которому можно подключиться, вместо прямого открытия TCP-соединения.',
+              //   newLabel: 'Сокет Unix'
+              // },
+              'Description': {
+                Help: 'Описание удаленного подключения.',
+                newLabel: 'Описание'
+              }
+            }
+
+            // Обработка элемента
+            if (helpMessages[item.$Label]) {
+              item.Help = helpMessages[item.$Label].Help
+              if (helpMessages[item.$Label].newLabel) {
+                item.$Label = helpMessages[item.$Label].newLabel
+              }
+            }
           }
         })
 
@@ -655,14 +841,14 @@ const sync = function (method, bookmark) {
   // Check if source directory is empty because this could damage remote one.
   if (method === 'upload') {
     if (!fs.readdirSync(bookmark._rclonetray_local_path_map).length) {
-      throw Error('Cannot upload empty directory.')
+      throw Error('Не удается загрузить пустой каталог.')
     }
   }
 
   let oppositeMethod = method === 'download' ? 'upload' : 'download'
 
   if ((new BookmarkProcessManager(oppositeMethod, bookmark.$name)).exists()) {
-    throw Error(`Cannot perform downloading and uploading in same time.`)
+    throw Error(`Невозможно выполнить загрузку и выгрузку данных одновременно.`)
   }
 
   let proc = new BookmarkProcessManager(method, bookmark.$name)
@@ -683,7 +869,7 @@ const getBookmark = function (bookmark) {
   } else if (bookmark in Cache.bookmarks) {
     return Cache.bookmarks[bookmark]
   } else {
-    throw Error(`No such bookmark ${bookmark}`)
+    throw Error(`Закладки ${bookmark} нет`)
   }
 }
 
@@ -713,7 +899,7 @@ const getProvider = function (providerName) {
   if (Cache.providers.hasOwnProperty(providerName)) {
     return Cache.providers[providerName]
   } else {
-    throw Error(`No such provider ${providerName}`)
+    throw Error(`Такого провайдера ${providerName} нет`)
   }
 }
 
@@ -735,7 +921,7 @@ const validateBookmarkOptions = function (providerObject, values) {
   providerObject.Options.forEach(function (optionDefinition) {
     let fieldName = optionDefinition.$Label || optionDefinition.Name
     if (optionDefinition.Required && (!values.hasOwnProperty(optionDefinition.Name) || !values[optionDefinition.Name])) {
-      throw Error(`${fieldName} field is required`)
+      throw Error(`${fieldName} поле является обязательным для заполнения`)
     }
     // @TODO type checks
   })
@@ -777,7 +963,7 @@ const updateBookmarkFields = function (bookmarkName, providerObject, values, old
     }))
   } catch (err) {
     console.error(err)
-    throw Error('Cannot update bookmark fields.')
+    throw Error('Не удается обновить поля закладок.')
   }
   console.log('Rclone', 'Updated bookmark', bookmarkName)
 }
@@ -796,7 +982,7 @@ const addBookmark = function (type, bookmarkName, values) {
 
   return new Promise(function (resolve, reject) {
     if (!/^([a-zA-Z0-9\-_]{1,32})$/.test(bookmarkName)) {
-      reject(Error(`Invalid name.\nName should be 1-32 chars long, and should contain only letters, gidits - and _`))
+      reject(Error(`Недопустимое имя.\nИмя должно содержать от 1 до 32 символов и состоять только из букв, цифр и _`))
       return
     }
 
@@ -804,29 +990,29 @@ const addBookmark = function (type, bookmarkName, values) {
     validateBookmarkOptions(providerObject, values)
 
     if (Cache.bookmarks.hasOwnProperty(bookmarkName)) {
-      reject(Error(`There "${bookmarkName}" bookmark already`))
+      reject(Error(`Закладка "${bookmarkName}" уже есть`))
       return
     }
     try {
       let iniBlock = `\n[${bookmarkName}]\nconfig_automatic = no\ntype = ${type}\n`
       fs.appendFileSync(configFile, iniBlock)
-      console.log('Rclone', 'Creating new bookmark', bookmarkName)
+      console.log('Rclone', 'Создание новой закладки', bookmarkName)
       try {
         updateBookmarkFields(bookmarkName, providerObject, values)
-        dialogs.notification(`Bookmark ${bookmarkName} is created`)
+        dialogs.notification(`Закладка ${bookmarkName} создана`)
         resolve()
         // Done.
       } catch (err) {
-        console.error('Rclone', 'Reverting bookmark because of a problem', bookmarkName, err)
+        console.error('Rclone', 'Возврат закладки из-за проблемы', bookmarkName, err)
         doCommand(['config', 'delete', bookmarkName])
           .then(function () {
-            reject(Error('Cannot write bookmark options to config.'))
+            reject(Error('Не удается записать параметры закладок в конфигурацию.'))
           })
           .catch(reject)
       }
     } catch (err) {
       console.error(err)
-      reject(Error('Cannot create new bookmark'))
+      reject(Error('Не удается создать новую закладку'))
     }
   })
 }
