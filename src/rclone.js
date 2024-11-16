@@ -241,7 +241,7 @@ class BookmarkProcessManager {
    * @param {*} processName
    * @param {*} bookmarkName
    */
-  npm constructor (processName, bookmarkName) {
+  constructor (processName, bookmarkName) {
     this.id = `${bookmarkName}:${processName}`
     this.bookmarkName = bookmarkName
     this.processName = processName
