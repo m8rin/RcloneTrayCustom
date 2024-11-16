@@ -136,14 +136,18 @@ const appendCustomRcloneCommandArgs = function (commandArray, bookmarkName) {
   const argsSplitterPattern = new RegExp(/\n+/)
 
   let customGlobalArgs = settings.get('custom_args').trim().split(argsSplitterPattern)
-  customGlobalArgs = customGlobalArgs.filter(filterCustomArgsVerbose)
+//  customGlobalArgs = customGlobalArgs.filter(filterCustomArgsVerbose)
   commandArray = commandArray.concat(customGlobalArgs)
 
   if (bookmarkName) {
+
     let bookmark = getBookmark(bookmarkName)
+    console.info('Debug Ilya', bookmark)
     if ('_rclonetray_custom_args' in bookmark && bookmark._rclonetray_custom_args.trim()) {
       let customBookmarkArgs = bookmark._rclonetray_custom_args.trim().split(argsSplitterPattern)
-      customBookmarkArgs = customBookmarkArgs.filter(filterCustomArgsVerbose)
+      console.info('Debug Ilya', customBookmarkArgs)
+//      customBookmarkArgs = customBookmarkArgs.filter(filterCustomArgsVerbose)
+      console.info('Debug Ilya', customBookmarkArgs)
       commandArray = commandArray.concat(customBookmarkArgs)
     }
   }
@@ -167,7 +171,7 @@ const doCommand = function (command) {
     if (isDev) {
       console.info('Rclone[A]', command)
     }
-    exec(command.join(' '), function (err, stdout, stderr) {
+    exec(command.join(' '), {maxBuffer: 1024 * 2048} ,function (err, stdout, stderr) {
       if (err) {
         console.error('Rclone', err)
         reject(Error('Rclone command error.'))
@@ -237,7 +241,7 @@ class BookmarkProcessManager {
    * @param {*} processName
    * @param {*} bookmarkName
    */
-  constructor (processName, bookmarkName) {
+  npm constructor (processName, bookmarkName) {
     this.id = `${bookmarkName}:${processName}`
     this.bookmarkName = bookmarkName
     this.processName = processName
@@ -400,7 +404,7 @@ class BookmarkProcessManager {
     // Catch errors in the output, so need to kill the process and refresh
     if (/(Error while|Failed to|Fatal Error|coudn't connect)/i.test(lineInfo.message)) {
       dialogs.notification(lineInfo.message)
-      BookmarkProcessRegistry[this.id].process.kill()
+//      BookmarkProcessRegistry[this.id].process.kill()
       fireRcloneUpdateActions()
       return
     }
@@ -965,7 +969,9 @@ const mount = function (bookmark) {
     '--dir-cache-time', Math.max(1, parseInt(settings.get('rclone_cache_directories'))) + 's',
     '--allow-non-empty',
     '--volname', bookmark.$name,
-    '-vv'
+    '-vv',
+//    '--no-check-certificate',
+    '--vfs-cache-mode=minimal'
   ])
   proc.set('mountpoint', mountpoint)
 

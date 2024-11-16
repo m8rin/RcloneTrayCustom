@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+jmk#!/usr/bin/env bash
 
 bin_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 bin_dir="${bin_dir}/rclone"
