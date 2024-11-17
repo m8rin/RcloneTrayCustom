@@ -180,7 +180,7 @@ const generateBookmarkActionsSubmenu = function (bookmark) {
     }
 
     template.submenu.push({
-      label: 'Показать в поиске',
+      label: 'Показать в Проводнике',
       click: bookmarkActionRouter.bind(bookmark, 'open-local')
     })
   }

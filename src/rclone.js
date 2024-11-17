@@ -830,13 +830,13 @@ const sync = function (method, bookmark) {
     throw Error('Операции с корневым диском запрещены, поскольку они опасны, поэтому установите дополнительный внутренний каталог для сопоставления каталогов закладок или используйте cli для этой цели..')
   }
 
-  let cmd = ['sync']
-  if (method === 'upload') {
-    cmd.push(bookmark._rclonetray_local_path_map, getBookmarkRemoteWithRoot(bookmark))
-  } else {
-    cmd.push(getBookmarkRemoteWithRoot(bookmark), bookmark._rclonetray_local_path_map)
-  }
-  cmd.push('-vv')
+  // let cmd = ['sync']
+  // if (method === 'upload') {
+  //   cmd.push(bookmark._rclonetray_local_path_map, getBookmarkRemoteWithRoot(bookmark))
+  // } else {
+  //   cmd.push(getBookmarkRemoteWithRoot(bookmark), bookmark._rclonetray_local_path_map)
+  // }
+  // cmd.push('-vv')
 
   // Check if source directory is empty because this could damage remote one.
   if (method === 'upload') {
@@ -848,14 +848,94 @@ const sync = function (method, bookmark) {
   let oppositeMethod = method === 'download' ? 'upload' : 'download'
 
   if ((new BookmarkProcessManager(oppositeMethod, bookmark.$name)).exists()) {
-    throw Error(`Невозможно выполнить загрузку и выгрузку данных одновременно.`)
+    return Promise.reject(new Error(`Невозможно выполнить загрузку и выгрузку данных одновременно.`));
   }
 
-  let proc = new BookmarkProcessManager(method, bookmark.$name)
-  proc.create(cmd)
-  proc.set('OK', true)
-  fireRcloneUpdateActions()
-}
+  let proc = new BookmarkProcessManager(method, bookmark.$name);
+
+  let cmd = ['bisync', '--log-format', 'json', bookmark._rclonetray_local_path_map, getBookmarkRemoteWithRoot(bookmark), '-vv'];
+  proc.create(cmd);
+  let resync_f = false;
+  let bytes_transferred = 0;
+
+  return new Promise((resolve, reject) => {
+    const originalClose = proc.getProcess().listeners('close')[0];
+    if (originalClose) {
+      proc.getProcess().removeListener('close', originalClose);
+    }
+
+    proc.getProcess().on('close', (code) => {
+      if (!resync_f && BookmarkProcessRegistry[proc.id] && BookmarkProcessRegistry[proc.id].data && BookmarkProcessRegistry[proc.id].data.OK) {
+        if (bytes_transferred > 0) {
+          if (method === 'download') {
+            dialogs.notification(`Скачивание из ${bookmark.$name} завершено`);
+          } else if (method === 'upload') {
+            dialogs.notification(`Загрузка в ${bookmark.$name} завершена`);
+          }
+        }
+      }
+      delete BookmarkProcessRegistry[proc.id];
+      fireRcloneUpdateActions();
+      resolve(code); // Разрешаем промис
+    });
+
+    proc.getProcess().stderr.on('data', (data) => {
+      const output = data.toString();
+      const transferMatch = output.match(/Transferred:\s*(\d+)\s*B/i);
+      if (transferMatch) {
+        bytes_transferred = parseInt(transferMatch[1], 10);
+      }
+
+      if (output.includes('--resync')) {
+        const savedData = {
+          id: proc.id,
+          bookmarkName: bookmark.$name,
+          processName: method,
+          localPath: bookmark._rclonetray_local_path_map,
+          remoteRoot: getBookmarkRemoteWithRoot(bookmark)
+        };
+        resync_f = true;
+        proc.getProcess().kill('SIGKILL');
+
+        setTimeout(() => {
+          if (BookmarkProcessRegistry[proc.id]) {
+            delete BookmarkProcessRegistry[proc.id];
+          }
+
+          dialogs.notification('Первый запуск синхронизации. Выполнение начальной синхронизации с --resync...');
+
+          let resyncCmd = ['bisync', '--resync', '--log-format', 'json', savedData.localPath, savedData.remoteRoot, '-v'];
+          let resyncProc = new BookmarkProcessManager(savedData.processName, savedData.bookmarkName);
+          resyncProc.create(resyncCmd);
+
+          const resyncOriginalClose = resyncProc.getProcess().listeners('close')[0];
+          if (resyncOriginalClose) {
+            resyncProc.getProcess().removeListener('close', resyncOriginalClose);
+          }
+
+          resyncProc.getProcess().on('close', (code) => {
+            if (code === 0) {
+              dialogs.notification(`Начальная синхронизация для ${savedData.bookmarkName} завершена успешно`);
+            } else {
+              dialogs.notification(`Начальная синхронизация для ${savedData.bookmarkName} завершилась неудачей`);
+            }
+            delete BookmarkProcessRegistry[resyncProc.id];
+            fireRcloneUpdateActions();
+            resolve(code);
+          });
+
+          fireRcloneUpdateActions();
+        }, 1000);
+      }
+    });
+
+    if (!resync_f) {
+      proc.set('OK', true);
+    }
+    fireRcloneUpdateActions();
+  });
+};
+
 
 /**
  * Get bookmark
@@ -1296,8 +1376,12 @@ const toggleAutomaticUpload = function (bookmark) {
   bookmark = getBookmark(bookmark)
 
   if (AutomaticUploadRegistry.hasOwnProperty(bookmark.$name)) {
+    // Если уже существует запись, очищаем таймер и интервал
     if (AutomaticUploadRegistry[bookmark.$name].timer) {
-      clearTimeout(AutomaticUploadRegistry[bookmark.$name])
+      clearTimeout(AutomaticUploadRegistry[bookmark.$name].timer)
+    }
+    if (AutomaticUploadRegistry[bookmark.$name].interval) {
+      clearInterval(AutomaticUploadRegistry[bookmark.$name].interval)
     }
     AutomaticUploadRegistry[bookmark.$name].watcher.close()
     delete AutomaticUploadRegistry[bookmark.$name]
@@ -1305,7 +1389,9 @@ const toggleAutomaticUpload = function (bookmark) {
     // Set the registry.
     AutomaticUploadRegistry[bookmark.$name] = {
       watcher: null,
-      timer: null
+      timer: null,
+      interval: null, // Поле для хранения интервала
+      isSyncing: false // Флаг для отслеживания статуса синхронизации
     }
 
     AutomaticUploadRegistry[bookmark.$name].watcher = chokidar.watch(bookmark._rclonetray_local_path_map, {
@@ -1326,6 +1412,18 @@ const toggleAutomaticUpload = function (bookmark) {
         sync('upload', bookmark)
       }, 3000)
     })
+
+    // Устанавливаем интервал для выполнения sync('download'
+    AutomaticUploadRegistry[bookmark.$name].interval = setInterval(function () {
+      if (!AutomaticUploadRegistry[bookmark.$name].isSyncing) {
+        AutomaticUploadRegistry[bookmark.$name].isSyncing = true; // Устанавливаем флаг
+        sync('download', bookmark).then(() => {
+          AutomaticUploadRegistry[bookmark.$name].isSyncing = false; // Сбрасываем флаг после завершения
+        }).catch(() => {
+          AutomaticUploadRegistry[bookmark.$name].isSyncing = false; // Сбрасываем флаг в случае ошибки
+        });
+      }
+    }, settings.get('rclone_sync_autoupload_delay') * 1000) // Значение из настроек Загрузка/Скачивание "Автоматическая загрузка"
   }
 
   fireRcloneUpdateActions()
