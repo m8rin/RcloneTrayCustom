@@ -257,7 +257,7 @@ class BookmarkProcessManager {
     }
     if (this.exists()) {
       console.error(`Trying to create new ${this.processName} over existing for ${this.bookmarkName}.`)
-      throw Error('Такой процесс уже существует.')
+      // throw Error('Такой процесс уже существует.')
     }
     let id = this.id
 
@@ -810,6 +810,8 @@ const fireRcloneUpdateActions = function (eventName) {
  * @param {{}} bookmark
  * @throws {Error}
  */
+let isSuccessSync = true;
+
 const sync = function (method, bookmark) {
   // Check supported method
   if (method !== 'upload' && method !== 'download') {
@@ -915,9 +917,15 @@ const sync = function (method, bookmark) {
 
           resyncProc.getProcess().on('close', (code) => {
             if (code === 0) {
+              console.log(`Initial synchronization for ${savedData.bookmarkName} completed successfully`)
               dialogs.notification(`Начальная синхронизация для ${savedData.bookmarkName} завершена успешно`);
+              isSuccessSync = true;
             } else {
-              dialogs.notification(`Начальная синхронизация для ${savedData.bookmarkName} завершилась неудачей`);
+              console.log(`Initial synchronization for ${savedData.bookmarkName} failed`)
+              if (isSuccessSync) {
+                dialogs.notification(`Начальная синхронизация для ${savedData.bookmarkName} завершилась неудачей`);
+                isSuccessSync = false;
+              }
             }
             delete BookmarkProcessRegistry[resyncProc.id];
             fireRcloneUpdateActions();
