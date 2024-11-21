@@ -841,11 +841,11 @@ const sync = function (method, bookmark) {
   // cmd.push('-vv')
 
   // Check if source directory is empty because this could damage remote one.
-  if (method === 'upload') {
-    if (!fs.readdirSync(bookmark._rclonetray_local_path_map).length) {
-      throw Error('Не удается загрузить пустой каталог.')
-    }
-  }
+//  if (method === 'upload') {
+//    if (!fs.readdirSync(bookmark._rclonetray_local_path_map).length) {
+//      throw Error('Не удается загрузить пустой каталог.')
+//    }
+//  }
 
   let oppositeMethod = method === 'download' ? 'upload' : 'download'
 
@@ -855,7 +855,7 @@ const sync = function (method, bookmark) {
 
   let proc = new BookmarkProcessManager(method, bookmark.$name);
 
-  let cmd = ['bisync', '--log-format', 'json', bookmark._rclonetray_local_path_map, getBookmarkRemoteWithRoot(bookmark), '-vv'];
+  let cmd = ['bisync','--force','--recover','--create-empty-src-dirs', '--log-format', 'json', bookmark._rclonetray_local_path_map, getBookmarkRemoteWithRoot(bookmark), '-v'];
   proc.create(cmd);
   let resync_f = false;
   let bytes_transferred = 0;
@@ -906,7 +906,7 @@ const sync = function (method, bookmark) {
 
           dialogs.notification('Первый запуск синхронизации. Выполнение начальной синхронизации с --resync...');
 
-          let resyncCmd = ['bisync', '--resync', '--log-format', 'json', savedData.localPath, savedData.remoteRoot, '-v'];
+          let resyncCmd = ['bisync', '--resync','--create-empty-src-dirs', '--log-format', 'json', savedData.localPath, savedData.remoteRoot, '-v'];
           let resyncProc = new BookmarkProcessManager(savedData.processName, savedData.bookmarkName);
           resyncProc.create(resyncCmd);
 
@@ -1245,7 +1245,7 @@ const mount = function (bookmark) {
     '--volname', bookmark.$name,
     '-vv',
 //    '--no-check-certificate',
-    '--vfs-cache-mode=minimal'
+    '--vfs-cache-mode=writes'
   ])
   proc.set('mountpoint', mountpoint)
 

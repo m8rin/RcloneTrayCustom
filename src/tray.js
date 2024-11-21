@@ -144,37 +144,37 @@ const generateBookmarkActionsSubmenu = function (bookmark) {
       {
         type: 'separator'
       },
+//      {
+//        type: 'checkbox',
+//        label: 'Скачать',
+//        enabled: !isAutomaticUpload && !isUpload && !isDownload,
+//        checked: isDownload,
+//        click: bookmarkActionRouter.bind(bookmark, 'download')
+//      },
       {
         type: 'checkbox',
-        label: 'Скачать',
-        enabled: !isAutomaticUpload && !isUpload && !isDownload,
-        checked: isDownload,
-        click: bookmarkActionRouter.bind(bookmark, 'download')
-      },
-      {
-        type: 'checkbox',
-        label: 'Загрузить',
+        label: 'Синхронизировать',
         enabled: !isAutomaticUpload && !isUpload && !isDownload,
         checked: isUpload,
         click: bookmarkActionRouter.bind(bookmark, 'upload')
       },
       {
         type: 'checkbox',
-        label: 'Автоматическая загрузка',
+        label: 'Автоматическая синхронизация',
         checked: isAutomaticUpload,
         click: bookmarkActionRouter.bind(bookmark, 'toggle-automatic-upload')
       })
 
     if (isDownload) {
       template.submenu.push({
-        label: 'Остановить загрузку',
+        label: 'Остановить синхронизацию',
         click: bookmarkActionRouter.bind(bookmark, 'stop-downloading')
       })
     }
 
     if (isUpload) {
       template.submenu.push({
-        label: 'Прекратить загрузку',
+        label: 'Прекратить синхронизацию',
         click: bookmarkActionRouter.bind(bookmark, 'stop-uploading')
       })
     }

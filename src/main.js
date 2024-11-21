@@ -32,7 +32,7 @@ if (process.platform === 'win32') {
 // Do not allow multiple instances.
 if (!app.requestSingleInstanceLock()) {
   if (isDev) {
-    console.log('There is already started RcloneTray instance.')
+    console.log('There is already started CSync instance.')
   }
   app.focus()
   dialogs.errorMultiInstance()

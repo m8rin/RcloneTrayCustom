@@ -197,7 +197,7 @@ const errorMultiInstance = function () {
   // @TODO consider switch to notification (baloon),
   //       the problem is that Notifications are available after app is ready
   // (new Notification({ body: 'RcloneTray is already started and cannot be started twice.' })).show()
-  dialog.showErrorBox('', 'RcloneTray уже запущен и не может быть запущен дважды.')
+  dialog.showErrorBox('', 'CSync уже запущен и не может быть запущен дважды.')
 }
 
 /**
@@ -211,16 +211,16 @@ const uncaughtException = function (detail) {
     // and user should decide to ignore or to exit (because could have active transfers)
     let choice = dialog.showMessageBox(null, {
       type: 'warning',
-      buttons: ['Quit RcloneTray', 'Cancel'],
+      buttons: ['Выход', 'Отмена'],
       title: 'Error',
-      message: 'Unexpected runtime error.',
+      message: 'Непредвиденная ошибка.',
       detail: (detail || '').toString()
     })
     app.focus()
     return choice === 0
   } else {
     // This message will be shown on very early stage before most of the app is loaded.
-    dialog.showErrorBox('Непредвиденная ошибка во время выполнения. Не удается запустить Rclonectray.', (detail || '').toString())
+    dialog.showErrorBox('Непредвиденная ошибка во время выполнения. Не удается запустить CSync.', (detail || '').toString())
     app.focus()
     return true
   }
@@ -234,7 +234,7 @@ const confirmExit = function () {
   let choice = dialog.showMessageBox(null, {
     type: 'warning',
     buttons: ['Да', 'Нет'],
-    title: 'Выйти из RcloneTray',
+    title: 'Выйти из CSync',
     message: 'Вы уверены, что хотите выйти?',
     detail: 'Есть активные процессы, которые будут завершены.'
   })

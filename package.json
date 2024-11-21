@@ -1,8 +1,8 @@
 {
-    "name": "rclonetray",
-    "productName": "RcloneTray",
+    "name": "csync",
+    "productName": "CSync",
     "title": "RcloneTray",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "releaseType": "release",
     "description": "Simple Rclone bookmark manager GUI that stays in the system tray.",
     "repository": {
