@@ -10,6 +10,7 @@ const { app, shell } = require('electron')
 const isDev = require('electron-is-dev')
 const settings = require('./settings')
 const dialogs = require('./dialogs')
+const errorHandler = require('./error-handler')
 
 /**
  * Define unsupported provider types
@@ -174,6 +175,7 @@ const doCommand = function (command) {
     exec(command.join(' '), {maxBuffer: 1024 * 2048} ,function (err, stdout, stderr) {
       if (err) {
         console.error('Rclone', err)
+        errorHandler.logToFile(err)
         reject(Error('Rclone command error.'))
       } else {
         resolve(stdout)
@@ -257,6 +259,7 @@ class BookmarkProcessManager {
     }
     if (this.exists()) {
       console.error(`Trying to create new ${this.processName} over existing for ${this.bookmarkName}.`)
+      errorHandler.logToFile(`Trying to create new ${this.processName} over existing for ${this.bookmarkName}.`)
       // throw Error('Такой процесс уже существует.')
     }
     let id = this.id
@@ -275,6 +278,7 @@ class BookmarkProcessManager {
 
     if (isDev) {
       console.log('Rclone[BP]', command)
+      errorHandler.logToFile(command)
     }
 
     BookmarkProcessRegistry[id].process.stderr.on('data', this.rcloneProcessWatchdog.bind(this))
@@ -402,12 +406,24 @@ class BookmarkProcessManager {
     }
 
     // Catch errors in the output, so need to kill the process and refresh
-    if (/(Error while|Failed to|Fatal Error|coudn't connect)/i.test(lineInfo.message)) {
-      dialogs.notification(lineInfo.message)
-//      BookmarkProcessRegistry[this.id].process.kill()
+    if (['ERROR'].indexOf(lineInfo.level) !== -1) {
+      errorHandler.handleProcessOutput(lineInfo)
+
+      if (/(Statfs failed|IO error: couldn't list files: Propfind)/i.test(lineInfo.message)) {
+        unmount(this.bookmarkName);
+      }
+
       fireRcloneUpdateActions()
       return
     }
+
+//     if (/(Error while|Failed to|Fatal Error|coudn't connect|no such host)/i.test(lineInfo.message)) {
+//       console.log('Rclone Watchdog', lineInfo)
+//       dialogs.notification(lineInfo.message)
+// //      BookmarkProcessRegistry[this.id].process.kill()
+//       fireRcloneUpdateActions()
+//       return
+//     }
 
     // When remote is mounted.
     if (/Mounting on "/.test(lineInfo.message)) {
@@ -442,6 +458,11 @@ class BookmarkProcessManager {
 
     if (isDev) {
       console.log('Rclone Watchdog', lineInfo)
+    }
+
+    // ERROR логируется в файл в handleProcessOutput(), DEBUG не логируется
+    if (['NOTICE', 'INFO'].indexOf(lineInfo.level) !== -1) {
+      errorHandler.logToFile(lineInfo)
     }
   }
 
@@ -1051,6 +1072,7 @@ const updateBookmarkFields = function (bookmarkName, providerObject, values, old
     }))
   } catch (err) {
     console.error(err)
+    errorHandler.logToFile(err)
     throw Error('Не удается обновить поля закладок.')
   }
   console.log('Rclone', 'Updated bookmark', bookmarkName)
@@ -1092,6 +1114,7 @@ const addBookmark = function (type, bookmarkName, values) {
         // Done.
       } catch (err) {
         console.error('Rclone', 'Возврат закладки из-за проблемы', bookmarkName, err)
+        errorHandler.logToFile(err)
         doCommand(['config', 'delete', bookmarkName])
           .then(function () {
             reject(Error('Не удается записать параметры закладок в конфигурацию.'))
@@ -1100,6 +1123,7 @@ const addBookmark = function (type, bookmarkName, values) {
       }
     } catch (err) {
       console.error(err)
+      errorHandler.logToFile(err)
       reject(Error('Не удается создать новую закладку'))
     }
   })
@@ -1308,6 +1332,7 @@ const openMountPoint = function (bookmark) {
     shell.openExternal(`file://${mountpoint}`)
   } else {
     console.error('Trying to open non-mounted drive.')
+    errorHandler.logToFile('Trying to open non-mounted drive.')
   }
 }
 
@@ -1431,7 +1456,7 @@ const toggleAutomaticUpload = function (bookmark) {
           AutomaticUploadRegistry[bookmark.$name].isSyncing = false; // Сбрасываем флаг в случае ошибки
         });
       }
-    }, settings.get('rclone_sync_autoupload_delay') * 1000) // Значение из настроек Загрузка/Скачивание "Автоматическая загрузка"
+    }, settings.get('rclone_sync_autoupload_delay') * 1000) // Значение из настроек Синхронизация "Автоматическая загрузка"
   }
 
   fireRcloneUpdateActions()
@@ -1571,6 +1596,7 @@ const init = function () {
   } catch (err) {
     // This could happen if something wrong with the system Path variable or installed "unbundled"
     // package, and there is no Rclone installed on current system.
+    errorHandler.logToFile(err)
     dialogs.missingRclone()
 
     // If fails again, then there is really something wrong and will fail in to the uncaughtException handler.

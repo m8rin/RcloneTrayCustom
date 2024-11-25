@@ -114,7 +114,7 @@
         //   }
         // ]))
 
-        tabs.addTab('Загрузка/Скачивание', createOptionsFields([
+        tabs.addTab('Синхронизация', createOptionsFields([
           {
             $Label: 'Включить',
             $Type: 'boolean',
@@ -149,6 +149,34 @@
               {
                 Label: '15 сек',
                 Value: 15
+              },
+              {
+                Label: '30 сек',
+                Value: 30
+              },
+              {
+                Label: '1 мин',
+                Value: 60
+              },
+              {
+                Label: '5 мин',
+                Value: 300
+              },
+              {
+                Label: '10 мин',
+                Value: 600
+              },
+              {
+                Label: '15 мин',
+                Value: 1200
+              },
+              {
+                Label: '30 мин',
+                Value: 1800
+              },
+              {
+                Label: '1 час',
+                Value: 3600
               }
             ],
             Value: $main.settings.get('rclone_sync_autoupload_delay'),

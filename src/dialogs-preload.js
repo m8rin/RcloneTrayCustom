@@ -465,9 +465,9 @@ window.checkForRequiredRestart = function () {
   if (window.requireRestart) {
     let choice = remoteElectron.dialog.showMessageBox(remote.getCurrentWindow(), {
       type: 'warning',
-      buttons: ['Restart', 'Ignore'],
-      title: 'Restart is required',
-      message: 'You have changed an setting that requires restart to take effect.'
+      buttons: ['Перезагрузить', 'Игнорировать'],
+      title: 'Требуется перезагрузка',
+      message: 'Вы изменили параметр, для вступления в силу которого требуется перезагрузка.'
     })
     if (choice === 0) {
       remote.app.relaunch()
@@ -477,7 +477,7 @@ window.checkForRequiredRestart = function () {
 }
 
 /**
- * Construct option fields by definition array
+ * Construct option fields by definition arrayЁЁ
  * @returns {DocumentFragment}
  */
 window.createOptionsFields = function (optionFields, optionFieldsNamespace, optionValues) {
