@@ -151,40 +151,20 @@ window.selectFile = function (defaultFile, callback) {
  * Simple form JSON serializator
  */
 window.getTheFormData = function (form) {
-  let values = {}
-  for (let i = 0; i < form.elements.length; i++) {
-    if (!form.elements[i].name ||
-      form.elements[i].disabled ||
-      form.elements[i].tagName === 'BUTTON' ||
-      (form.elements[i].type === 'radio' && !form.elements[i].checked)
-    ) {
-      continue
-    }
-
-    let name = form.elements[i].name.split('.')
-    let namespace = null
-    if (name.length > 1) {
-      namespace = name.shift()
-    }
-    name = name.join('.')
-    let value = form.elements[i].value
-    if (form.elements[i].type === 'checkbox' && !form.elements[i].checked) {
-      value = ''
-    }
-    if (form.elements[i].tagName === 'SELECT' && form.elements[i].multiple) {
-      value = Array.from(document.forms[0][2].selectedOptions).map(option => option.value)
-    }
-
-    if (namespace) {
-      if (!values.hasOwnProperty(namespace)) {
-        values[namespace] = {}
+  let data = {}
+  let elements = form.elements
+  for (let i = 0; i < elements.length; i++) {
+    let element = elements[i]
+    if (element.name) {
+      // Преобразуем значение в число для поля задержки автозагрузки
+      if (element.name === 'rclone_sync_autoupload_delay') {
+        data[element.name] = parseInt(element.value)
+      } else {
+        data[element.name] = element.value
       }
-      values[namespace][name] = value
-    } else {
-      values[name] = value
     }
   }
-  return values
+  return data
 }
 
 /**

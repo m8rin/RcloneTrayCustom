@@ -294,71 +294,80 @@ const generateBookmarkActionsSubmenu = function (bookmark) {
   }
 }
 
+let menuUpdatePromise = null;
+
 /**
  * Refreshing try menu.
  */
-const refreshTrayMenu = function () {
-  // If by some reason some part of the code do this.refresh(),
-  // before the tray icon initialization, must not continue because possible error.
-  if (!trayIndicator) {
-    return
+const refreshTrayMenu = async function () {
+  if (!trayIndicator) return;
+
+  // Если уже идет обновление - ждем его завершения
+  if (menuUpdatePromise) {
+    await menuUpdatePromise;
+    return;
   }
 
-  if (isDev) {
-    console.log('Refresh tray indicator menu')
-  }
+  menuUpdatePromise = new Promise(async (resolve) => {
+    if (isDev) {
+      console.log('Refresh tray indicator menu')
+    }
 
-  let menuItems = []
-  let isConnected = false
+    let menuItems = [];
+    let isConnected = false;
 
-  menuItems.push({
-    label: 'Новая закладка',
-    click: dialogs.addBookmark,
-    accelerator: 'CommandOrControl+N'
-  })
-
-  let bookmarks = rclone.getBookmarks()
-
-  if (Object.keys(bookmarks).length > 0) {
     menuItems.push({
-      type: 'separator'
-    })
-    for (let key in bookmarks) {
-      let bookmarkMenu = generateBookmarkActionsSubmenu(bookmarks[key])
-      menuItems.push(bookmarkMenu.template)
-      if (bookmarkMenu.isConnected) {
-        isConnected = true
+      label: 'Новая закладка',
+      click: dialogs.addBookmark,
+      accelerator: 'CommandOrControl+N'
+    });
+
+    const bookmarks = rclone.getBookmarks();
+
+    if (Object.keys(bookmarks).length > 0) {
+      menuItems.push({
+        type: 'separator'
+      });
+      
+      for (let key in bookmarks) {
+        let bookmarkMenu = generateBookmarkActionsSubmenu(bookmarks[key]);
+        menuItems.push(bookmarkMenu.template);
+        if (bookmarkMenu.isConnected) {
+          isConnected = true;
+        }
       }
     }
-  }
 
-  menuItems.push(
-    {
-      type: 'separator'
-    },
-    {
-      label: 'Настройки',
-      click: dialogs.preferences,
-      accelerator: 'CommandOrControl+,'
-    },
-    // {
-    //   label: 'About',
-    //   click: dialogs.about
-    // },
-    {
-      type: 'separator'
-    },
-    {
-      label: 'Выход',
-      accelerator: 'CommandOrControl+Q',
-      role: 'quit'
-    })
+    menuItems.push(
+      {
+        type: 'separator'
+      },
+      {
+        label: 'Настройки',
+        click: dialogs.preferences,
+        accelerator: 'CommandOrControl+,'
+      },
+      {
+        type: 'separator'
+      },
+      {
+        label: 'Выход',
+        accelerator: 'CommandOrControl+Q',
+        role: 'quit'
+      }
+    );
 
-  // Set the menu.
-  trayIndicator.setContextMenu(Menu.buildFromTemplate(menuItems))
+    // Устанавливаем меню
+    trayIndicator.setContextMenu(Menu.buildFromTemplate(menuItems));
+    
+    // Устанавливаем иконку
+    trayIndicator.setImage(isConnected ? icons.connected : icons.default);
 
-  // Set icon acording to the status
-  trayIndicator.setImage(isConnected ? icons.connected : icons.default)
+    menuUpdatePromise = null;
+    resolve();
+  });
+
+  return menuUpdatePromise;
 }
 
 /**

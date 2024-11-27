@@ -15,9 +15,9 @@ process.on('uncaughtException', function (error) {
 })
 
 // Check arch.
-if (process.arch !== 'x64') {
-  throw Error('The application can started on 64bit platforms only.')
-}
+// if (process.arch !== 'x64') {
+//   throw Error('The application can started on 64bit platforms only.')
+// }
 
 // Check the OS.
 if (['win32', 'linux', 'darwin'].indexOf(process.platform) === -1) {
