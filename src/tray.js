@@ -374,13 +374,24 @@ const refreshTrayMenu = async function () {
  * Refresh the tray menu.
  */
 const refresh = function () {
-  // Use some kind of static variable to store the timer
+  // Отменяем предыдущий таймер
   if (refreshTrayMenuAtomicTimer) {
     clearTimeout(refreshTrayMenuAtomicTimer)
   }
 
-  // Set some delay to avoid multiple updates in close time.
-  refreshTrayMenuAtomicTimer = setTimeout(refreshTrayMenu, 500)
+  // Устанавливаем флаг, что обновление в процессе
+  const isUpdating = !!menuUpdatePromise
+
+  // Если уже идет обновление, добавляем новое в очередь
+  if (isUpdating) {
+    menuUpdatePromise.finally(() => {
+      refreshTrayMenuAtomicTimer = setTimeout(refreshTrayMenu, 300)
+    })
+    return
+  }
+
+  // Запускаем новое обновление с небольшой задержкой
+  refreshTrayMenuAtomicTimer = setTimeout(refreshTrayMenu, 100)
 }
 
 /**
