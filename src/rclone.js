@@ -413,6 +413,12 @@ class BookmarkProcessManager {
         unmount(this.bookmarkName);
       }
 
+      if (/failed to verify certificate/i.test(lineInfo.message)) {
+        dialogs.notification('Ошибка проверки сертификата x509. Процессы будут завершены')
+        unmount(this.bookmarkName);
+        stopDownload(this.bookmarkName)
+      }
+
       fireRcloneUpdateActions()
       return
     }
@@ -626,6 +632,8 @@ const updateProvidersCache = function () {
             item.Examples = item.Examples.filter(function (vend) {
               return vend.Value == 'other'
             })
+            item.Value = 'other'
+            item.Default = 'other'
           }
 
           if (!item.hasOwnProperty('$Label')) {
@@ -832,6 +840,7 @@ const fireRcloneUpdateActions = function (eventName) {
  * @throws {Error}
  */
 let isSuccessSync = true;
+let isFirstSyncNotificationShown  = true;
 
 const sync = function (method, bookmark) {
   // Check supported method
@@ -909,7 +918,7 @@ const sync = function (method, bookmark) {
         bytes_transferred = parseInt(transferMatch[1], 10);
       }
 
-      if (output.includes('--resync')) {
+      if (/Bisync critical error: cannot find prior Path1 or Path2 listings/i.test(output)) {
         const savedData = {
           id: proc.id,
           bookmarkName: bookmark.$name,
@@ -925,7 +934,10 @@ const sync = function (method, bookmark) {
             delete BookmarkProcessRegistry[proc.id];
           }
 
-          dialogs.notification('Первый запуск синхронизации. Выполнение начальной синхронизации с --resync...');
+          if (isFirstSyncNotificationShown) {
+            isFirstSyncNotificationShown = false
+            dialogs.notification('Первый запуск синхронизации. Выполнение начальной синхронизации с --resync...');
+          }
 
           let resyncCmd = ['bisync', '--resync','--create-empty-src-dirs', '--log-format', 'json', savedData.localPath, savedData.remoteRoot, '-v'];
           let resyncProc = new BookmarkProcessManager(savedData.processName, savedData.bookmarkName);
@@ -941,11 +953,13 @@ const sync = function (method, bookmark) {
               console.log(`Initial synchronization for ${savedData.bookmarkName} completed successfully`)
               dialogs.notification(`Начальная синхронизация для ${savedData.bookmarkName} завершена успешно`);
               isSuccessSync = true;
+              isFirstSyncNotificationShown = true;
             } else {
               console.log(`Initial synchronization for ${savedData.bookmarkName} failed`)
               if (isSuccessSync) {
                 dialogs.notification(`Начальная синхронизация для ${savedData.bookmarkName} завершилась неудачей`);
                 isSuccessSync = false;
+                isFirstSyncNotificationShown = false;
               }
             }
             delete BookmarkProcessRegistry[resyncProc.id];
@@ -954,7 +968,7 @@ const sync = function (method, bookmark) {
           });
 
           fireRcloneUpdateActions();
-        }, 1000);
+        }, settings.get('rclone_sync_autoupload_delay') * 1000)
       }
     });
 
@@ -1110,6 +1124,7 @@ const addBookmark = function (type, bookmarkName, values) {
       try {
         updateBookmarkFields(bookmarkName, providerObject, values)
         dialogs.notification(`Закладка ${bookmarkName} создана`)
+        updateBookmarksCache()
         resolve()
         // Done.
       } catch (err) {
@@ -1163,6 +1178,7 @@ const deleteBookmark = function (bookmark) {
       .then(function () {
         BookmarkProcessManager.killAll(bookmark.$name)
         dialogs.notification(`Закладка ${bookmark.$name} удалена.`)
+        updateBookmarksCache()
         resolve()
       })
       .catch(reject)
@@ -1380,7 +1396,10 @@ const isDownload = function (bookmark) {
  */
 const stopDownload = function (bookmark) {
   bookmark = getBookmark(bookmark);
-  (new BookmarkProcessManager('download', bookmark.$name)).kill()
+  let proc = new BookmarkProcessManager('download', bookmark.$name)
+  if (proc.exists()) {
+    proc.kill()
+  }
 }
 
 /**

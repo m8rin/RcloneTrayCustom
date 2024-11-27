@@ -127,26 +127,6 @@
             Name: 'rclone_sync_autoupload_delay',
             Examples: [
               {
-                Label: '1 сек',
-                Value: 1
-              },
-              {
-                Label: '3 сек',
-                Value: 3
-              },
-              {
-                Label: '5 сек',
-                Value: 5
-              },
-              {
-                Label: '7 сек',
-                Value: 5
-              },
-              {
-                Label: '10 сек',
-                Value: 10
-              },
-              {
                 Label: '15 сек',
                 Value: 15
               },
@@ -179,7 +159,7 @@
                 Value: 3600
               }
             ],
-            Value: $main.settings.get('rclone_sync_autoupload_delay'),
+            Value: Number($main.settings.get('rclone_sync_autoupload_delay')),
             $RequireRestart: true,
             Help: 'Для применения изменений требуется перезагрузка'
           }
