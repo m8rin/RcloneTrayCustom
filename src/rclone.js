@@ -208,6 +208,15 @@ const doCommandAsync = function (command) {
   })
 }
 
+const doCommandSync = function (command) {
+  command = prepareRcloneCommand(command)
+  command = enquoteCommand(command)
+  if (isDev) {
+    console.info('Rclone[S]', command)
+  }
+  return execSync(command.join(' ')).toString()
+}
+
 /**
  *
  * @param {*} command
