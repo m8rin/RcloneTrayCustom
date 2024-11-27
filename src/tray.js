@@ -1,7 +1,7 @@
 'use strict'
 
 const path = require('path')
-const { Tray, Menu, shell, BrowserWindow } = require('electron')
+const { Tray, Menu, shell } = require('electron')
 const isDev = require('electron-is-dev')
 const settings = require('./settings')
 const rclone = require('./rclone')
@@ -144,6 +144,13 @@ const generateBookmarkActionsSubmenu = function (bookmark) {
       {
         type: 'separator'
       },
+//      {
+//        type: 'checkbox',
+//        label: 'Скачать',
+//        enabled: !isAutomaticUpload && !isUpload && !isDownload,
+//        checked: isDownload,
+//        click: bookmarkActionRouter.bind(bookmark, 'download')
+//      },
       {
         type: 'checkbox',
         label: 'Синхронизировать',
@@ -287,87 +294,6 @@ const generateBookmarkActionsSubmenu = function (bookmark) {
   }
 }
 
-let downloadStatusWindow = null;
-
-const createDownloadStatusWindow = () => {
-  if (downloadStatusWindow) {
-    downloadStatusWindow.focus();
-    return;
-  }
-
-  downloadStatusWindow = new BrowserWindow({
-    width: 400,
-    height: 500,
-    webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false,
-    },
-  });
-
-  downloadStatusWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(downloadStatusHTML)}`);
-
-  downloadStatusWindow.on('closed', () => {
-    downloadStatusWindow = null;
-  });
-};
-
-const downloadStatusHTML = `
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>Статус загрузки</title>
-    <style>
-        body { font-family: Arial, sans-serif; padding: 20px; }
-        .download-item { margin-bottom: 10px; padding: 10px; background-color: #f0f0f0; border-radius: 5px; }
-        .progress-bar { width: 100%; background-color: #e0e0e0; border-radius: 5px; }
-        .progress { height: 20px; background-color: #4CAF50; border-radius: 5px; transition: width 0.3s; }
-        .close-btn { float: right; cursor: pointer; }
-    </style>
-</head>
-<body>
-    <h2>Статус загрузки файлов</h2>
-    <div id="downloads"></div>
-    <script>
-        const downloads = [
-            { id: 1, name: 'file1.txt', progress: 75, status: 'downloading' },
-            { id: 2, name: 'file2.pdf', progress: 100, status: 'completed' },
-            { id: 3, name: 'file3.jpg', progress: 50, status: 'downloading' },
-            { id: 4, name: 'file4.docx', progress: 0, status: 'error' },
-        ];
-
-        function renderDownloads() {
-            const container = document.getElementById('downloads');
-            container.innerHTML = '';
-            downloads.forEach(download => {
-                const item = document.createElement('div');
-                item.className = 'download-item';
-                item.innerHTML = \`
-                    <span class="close-btn" onclick="removeDownload(\${download.id})">✖</span>
-                    <div>\${download.name}</div>
-                    <div class="progress-bar">
-                        <div class="progress" style="width: \${download.progress}%;"></div>
-                    </div>
-                    <div>\${download.status === 'completed' ? 'Завершено' : download.status === 'error' ? 'Ошибка' : \`\${download.progress}%\`}</div>
-                \`;
-                container.appendChild(item);
-            });
-        }
-
-        function removeDownload(id) {
-            const index = downloads.findIndex(d => d.id === id);
-            if (index !== -1) {
-                downloads.splice(index, 1);
-                renderDownloads();
-            }
-        }
-
-        renderDownloads();
-    </script>
-</body>
-</html>
-`;
-
 /**
  * Refreshing try menu.
  */
@@ -411,14 +337,14 @@ const refreshTrayMenu = function () {
       type: 'separator'
     },
     {
-      label: 'Статус загрузки',
-      click: createDownloadStatusWindow
-    },
-    {
       label: 'Настройки',
       click: dialogs.preferences,
       accelerator: 'CommandOrControl+,'
     },
+    // {
+    //   label: 'About',
+    //   click: dialogs.about
+    // },
     {
       type: 'separator'
     },

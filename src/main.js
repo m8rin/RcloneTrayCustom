@@ -64,13 +64,18 @@ app.on('second-instance', app.focus)
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.on('ready', function () {
+app.on('ready', async function () {
   // Initialize the tray.
   tray.init()
 
-  // Initialize Rclone.
-  rclone.init()
-  rclone.onUpdate(tray.refresh)
+  try {
+    // Initialize Rclone.
+    await rclone.init()
+    rclone.onUpdate(tray.refresh)
+  } catch (err) {
+    console.error('Failed to initialize rclone:', err)
+    errorHandler.logToFile(err)
+  }
 
   // Only on macOS there is app.dock.
   if (process.platform === 'darwin') {

@@ -191,13 +191,21 @@ const doCommand = function (command) {
  * @private
  * @throws {err}
  */
-const doCommandSync = function (command) {
-  command = prepareRcloneCommand(command)
-  command = enquoteCommand(command)
-  if (isDev) {
-    console.info('Rclone[S]', command)
-  }
-  return execSync(command.join(' ')).toString()
+const doCommandAsync = function (command) {
+  return new Promise((resolve, reject) => {
+    command = prepareRcloneCommand(command)
+    command = enquoteCommand(command)
+    if (isDev) {
+      console.info('Rclone[S]', command)
+    }
+    exec(command.join(' '), (error, stdout, stderr) => {
+      if (error) {
+        reject(error)
+      } else {
+        resolve(stdout.toString())
+      }
+    })
+  })
 }
 
 /**
@@ -1092,7 +1100,7 @@ const addBookmark = function (type, bookmarkName, values) {
 
   return new Promise(function (resolve, reject) {
     if (!/^([a-zA-Z0-9\-_]{1,32})$/.test(bookmarkName)) {
-      reject(Error(`Недопустимое имя.\nИмя должно содержать от 1 до 32 символов и состоять только из букв, цифр и _`))
+      reject(Error(`Не��опустимое имя.\nИмя должно содержать от 1 до 32 символов и состоять только из букв, цифр и _`))
       return
     }
 
@@ -1162,6 +1170,7 @@ const deleteBookmark = function (bookmark) {
     doCommand(['config', 'delete', bookmark.$name])
       .then(function () {
         BookmarkProcessManager.killAll(bookmark.$name)
+        updateBookmarksCache()
         dialogs.notification(`Закладка ${bookmark.$name} удалена.`)
         resolve()
       })
@@ -1584,7 +1593,7 @@ const getVersion = function () {
 /**
  * Init Rclone
  */
-const init = function () {
+const init = async function () {
   // On linux and mac add /usr/local/bin to the $PATH
   if (process.platform === 'linux' || process.platform === 'darwin') {
     process.env.PATH += ':' + path.join('/', 'usr', 'local', 'bin')
@@ -1592,22 +1601,19 @@ const init = function () {
 
   try {
     // Update version cache, it also do the first Rclone existance check
-    updateVersionCache()
+    await updateVersionCache()
   } catch (err) {
-    // This could happen if something wrong with the system Path variable or installed "unbundled"
-    // package, and there is no Rclone installed on current system.
     errorHandler.logToFile(err)
     dialogs.missingRclone()
-
-    // If fails again, then there is really something wrong and will fail in to the uncaughtException handler.
-    updateVersionCache()
+    // If fails again, then there is really something wrong
+    await updateVersionCache()
   }
 
   // Update config file path cache.
   if (settings.get('rclone_config')) {
     Cache.configFile = settings.get('rclone_config')
   } else {
-    let output = doCommandSync(['config', 'file'])
+    let output = await doCommandAsync(['config', 'file'])
     Cache.configFile = output.trim().split(/\r?\n/).pop()
   }
 
@@ -1629,11 +1635,9 @@ const init = function () {
   })
     .on('change', updateBookmarksCache)
 
-  // Update providers cache.
-  updateProvidersCache()
-
-  // Update bookmarks cache.
-  updateBookmarksCache()
+  // Update caches
+  await updateProvidersCache()
+  await updateBookmarksCache()
 }
 
 /**
