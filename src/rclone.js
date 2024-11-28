@@ -1462,7 +1462,7 @@ const toggleAutomaticUpload = function (bookmark) {
       }
       AutomaticUploadRegistry[bookmark.$name].timer = setTimeout(function () {
         sync('upload', bookmark)
-      }, 3000)
+      }, settings.get('rclone_sync_autoupload_delay') * 1000)
     })
 
     // Устанавливаем интервал для выполнения sync('download'
