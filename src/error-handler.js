@@ -25,7 +25,7 @@ const errorMessages = {
 const logToFile = function (message) {
   const timestamp = new Date().toISOString();
   const logMessage = `[${timestamp}] ${typeof message === 'object' ? JSON.stringify(message) : message}\n`;
-  fs.appendFileSync(logFilePath, logMessage, 'utf8');
+  // fs.appendFileSync(logFilePath, logMessage, 'utf8');
 };
 
 /**

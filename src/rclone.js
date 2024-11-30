@@ -383,6 +383,7 @@ class BookmarkProcessManager {
   rcloneProcessWatchdogLine (logLine) {
     // Prepare lineInfo{time,level,message}
     let lineInfo = {}
+    this.successNotificationOnSync(logLine)
 
     // Time is Y/m/d H:i:s
     lineInfo.time = logLine.substr(0, 19)
@@ -490,6 +491,36 @@ class BookmarkProcessManager {
     acc = splitted[splitted.length - 1]
     for (var i = 0; i < inTactLines.length; ++i) {
       this.rcloneProcessWatchdogLine(inTactLines[i].trim())
+    }
+  }
+
+  successNotificationOnSync(logLine) {
+    // Функция для удаления ANSI escape последовательностей
+    function removeAnsi(str) {
+      return str.replace(/\x1B\[[0-?9;]*[mK]/g, '');
+    }
+
+    const logRegex = /Path(\d+).*changes:\s*(\d+)\s*new,\s*(\d+)\s*modified,\s*(\d+)\s*deleted/;
+    const cleanLogLine = removeAnsi(logLine);
+    const match = logRegex.exec(cleanLogLine);
+    if (match) {
+      const path = match[1];
+      const newFiles = parseInt(match[2], 10);
+      const modifiedFiles = parseInt(match[3], 10);
+      const deletedFiles = parseInt(match[4], 10);
+      let notificationMessage = `Синхронизация завершена. `;
+
+      if (newFiles > 0) {
+        notificationMessage += `Добавлен(о) ${newFiles} файла(ов). `;
+      }
+      if (modifiedFiles > 0) {
+        notificationMessage += `Изменен(о) ${modifiedFiles} файла(ов). `;
+      }
+      if (deletedFiles > 0) {
+        notificationMessage += `Удален(о) ${deletedFiles} файла(ов). `;
+      }
+
+      dialogs.notification(notificationMessage);
     }
   }
 }
