@@ -916,7 +916,14 @@ const sync = function (method, bookmark) {
 
   let proc = new BookmarkProcessManager(method, bookmark.$name);
 
-  let cmd = ['bisync','--force','--recover','--create-empty-src-dirs', bookmark._rclonetray_local_path_map, getBookmarkRemoteWithRoot(bookmark), '-v'];
+  let cmd = ['bisync',
+            '--force',
+            '--recover',
+            '--create-empty-src-dirs',
+            bookmark._rclonetray_local_path_map, 
+            getBookmarkRemoteWithRoot(bookmark), 
+            '--no-check-certificate',
+            '-v'];
   proc.create(cmd);
   let resync_f = false;
   let bytes_transferred = 0;
@@ -970,7 +977,13 @@ const sync = function (method, bookmark) {
             dialogs.notification('Первый запуск синхронизации. Выполнение начальной синхронизации с --resync...');
           }
 
-          let resyncCmd = ['bisync', '--resync','--create-empty-src-dirs', savedData.localPath, savedData.remoteRoot, '-v'];
+          let resyncCmd = ['bisync', 
+                          '--resync',
+                          '--create-empty-src-dirs', 
+                          savedData.localPath, 
+                          savedData.remoteRoot, 
+                          '--no-check-certificate',
+                          '-v'];
           let resyncProc = new BookmarkProcessManager(savedData.processName, savedData.bookmarkName);
           resyncProc.create(resyncCmd);
 
@@ -1316,7 +1329,7 @@ const mount = function (bookmark) {
     '--dir-cache-time', Math.max(1, parseInt(settings.get('rclone_cache_directories'))) + 's',
     '--allow-non-empty',
     '--volname', bookmark.$name,
-    '-v',
+    '-vv',
     '--no-check-certificate',
     '--vfs-cache-mode=minimal',
     '--timeout=10s',
@@ -1325,11 +1338,7 @@ const mount = function (bookmark) {
   proc.set('mountpoint', mountpoint)
 
   if (process.platform === 'linux') {
-    proc.getProcess().on('close', (code) => {
-      console.log('Process mount exit with code: ', code);
-      if (code!=0){
-        try {execSync(`umount -l "${mountpoint}"`);} catch(error){}
-      }
+    proc.getProcess().on('close', function()  {
       freeMountpointDirectory(mountpoint)
       if (fs.existsSync(mountpoint)) {
         fs.readdir(mountpoint, function (err, files) {
@@ -1342,6 +1351,15 @@ const mount = function (bookmark) {
         })
       }
     })
+    proc.getProcess().stderr.on('data', (data) => {
+      const output = data.toString();
+      if (/Failed to unmount:/i.test(output)) {
+        console.log(`Force umount "${mountpoint}"`);
+        try {execSync(`umount -l "${mountpoint}"`);} catch(error){}
+      
+      }
+    })  
+
   }
 
   fireRcloneUpdateActions()
