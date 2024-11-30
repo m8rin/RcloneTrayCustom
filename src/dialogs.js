@@ -212,7 +212,7 @@ const uncaughtException = function (detail) {
     let choice = dialog.showMessageBox(null, {
       type: 'warning',
       buttons: ['Выход', 'Отмена'],
-      title: 'Error',
+      title: 'Ошибка',
       message: 'Непредвиденная ошибка.',
       detail: (detail || '').toString()
     })

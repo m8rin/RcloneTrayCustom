@@ -1234,7 +1234,7 @@ const freeMountpointDirectory = function (directoryPath) {
   if (fs.existsSync(directoryPath)) {
     fs.readdir(directoryPath, function (err, files) {
       if (err) {
-        throw err
+        throw Error(`Не удалось прочитать каталог "${directoryPath}" .`)
       }
       if (!files.length) {
         fs.rmdirSync(directoryPath)
@@ -1303,7 +1303,9 @@ const mount = function (bookmark) {
     throw Error(`Конечная точка монтирования "${mountpoint}" не свободна.`)
   }
   if (process.platform === 'linux' && !mountpointDirectoryExists) {
-    fs.mkdirSync(mountpoint)
+    try {fs.mkdirSync(mountpoint);} catch (error){
+      throw Error(`Не возможно создать директорию для монтирования "${mountpoint}".`)
+    }
   }
 
   proc.create([
@@ -1323,12 +1325,16 @@ const mount = function (bookmark) {
   proc.set('mountpoint', mountpoint)
 
   if (process.platform === 'linux') {
-    proc.getProcess().on('close', function () {
+    proc.getProcess().on('close', (code) => {
+      console.log('Process mount exit with code: ', code);
+      if (code!=0){
+        try {execSync(`umount -l "${mountpoint}"`);} catch(error){}
+      }
       freeMountpointDirectory(mountpoint)
       if (fs.existsSync(mountpoint)) {
         fs.readdir(mountpoint, function (err, files) {
           if (err) {
-            throw err
+            throw Error(`Не удалось прочитать каталог "${mountpoint}".`)
           }
           if (!files.length) {
             fs.rmdir(mountpoint, function () { })

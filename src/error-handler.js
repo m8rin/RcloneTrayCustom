@@ -14,6 +14,7 @@ const errorMessages = {
   // "couldn't connect": 'Не удалось подключиться',
   "webdav root '': Statfs failed: Propfind": 'Ошибка WebDAV: Не удалось выполнить запрос. Проверьте, правильно ли указан адрес: {url}',
   "IO error: couldn't list files: Propfind": 'Ошибка ввода-вывода: Не удалось перечислить файлы. Проверьте, правильно ли указан адрес: {url}',
+  "critical error: couldn\'t list files: Propfind":'Ошибка синхронизации: Не удалось получить список файлов. Проверьте наличие соединения.',
   "webdav root '': Statfs failed: 401": 'Ошибка WebDAV: Неправильный логин или пароль',
   "Failed to copy: 403": 'Доступ запрещён. Доступ только на чтение',
 };
