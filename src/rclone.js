@@ -885,7 +885,7 @@ const sync = function (method, bookmark) {
 
   let proc = new BookmarkProcessManager(method, bookmark.$name);
 
-  let cmd = ['bisync','--force','--recover','--create-empty-src-dirs', '--log-format', 'json', bookmark._rclonetray_local_path_map, getBookmarkRemoteWithRoot(bookmark), '-v'];
+  let cmd = ['bisync','--force','--recover','--create-empty-src-dirs', bookmark._rclonetray_local_path_map, getBookmarkRemoteWithRoot(bookmark), '-v'];
   proc.create(cmd);
   let resync_f = false;
   let bytes_transferred = 0;
@@ -939,7 +939,7 @@ const sync = function (method, bookmark) {
             dialogs.notification('Первый запуск синхронизации. Выполнение начальной синхронизации с --resync...');
           }
 
-          let resyncCmd = ['bisync', '--resync','--create-empty-src-dirs', '--log-format', 'json', savedData.localPath, savedData.remoteRoot, '-v'];
+          let resyncCmd = ['bisync', '--resync','--create-empty-src-dirs', savedData.localPath, savedData.remoteRoot, '-v'];
           let resyncProc = new BookmarkProcessManager(savedData.processName, savedData.bookmarkName);
           resyncProc.create(resyncCmd);
 
@@ -1283,9 +1283,11 @@ const mount = function (bookmark) {
     '--dir-cache-time', Math.max(1, parseInt(settings.get('rclone_cache_directories'))) + 's',
     '--allow-non-empty',
     '--volname', bookmark.$name,
-    '-vv',
-//    '--no-check-certificate',
-    '--vfs-cache-mode=writes'
+    '-v',
+    '--no-check-certificate',
+    '--vfs-cache-mode=minimal',
+    '--timeout=10s',
+    '--vfs-read-wait=30ms'
   ])
   proc.set('mountpoint', mountpoint)
 
@@ -1462,7 +1464,7 @@ const toggleAutomaticUpload = function (bookmark) {
       }
       AutomaticUploadRegistry[bookmark.$name].timer = setTimeout(function () {
         sync('upload', bookmark)
-      }, 3000)
+      }, settings.get('rclone_sync_autoupload_delay') * 1000)
     })
 
     // Устанавливаем интервал для выполнения sync('download'
