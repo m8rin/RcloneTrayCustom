@@ -388,8 +388,6 @@ class BookmarkProcessManager {
     let lineInfo = {}
     this.successNotificationOnSync(logLine)
     
-    console.info('Debug Ilya syncinfo ', syncinfo)
-
     // Time is Y/m/d H:i:s
     lineInfo.time = logLine.substr(0, 19)
 
@@ -421,7 +419,6 @@ class BookmarkProcessManager {
 
     if (/Bisync successful/i.test(lineInfo.message) && sync_change) {
       dialogs.notification(syncinfo)
-      console.info('Debug Ilya sync ok ', syncinfo)
     }
 
     // Catch errors in the output, so need to kill the process and refresh
@@ -537,7 +534,6 @@ class BookmarkProcessManager {
       if (deletedFiles > 0) {
         notificationMessage += `Удален(о) ${deletedFiles} файла(ов). `;
       }
-      console.info('Debug Ilya', notificationMessage)
       syncinfo= notificationMessage;
     }
   }
