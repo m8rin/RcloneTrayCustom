@@ -1357,7 +1357,7 @@ const mount = function (bookmark) {
       if (fs.existsSync(mountpoint)) {
         fs.readdir(mountpoint, function (err, files) {
           if (err) {
-            throw Error(`Не удалось прочитать каталог "${mountpoint}".`)
+            //throw Error(`Не удалось прочитать каталог "${mountpoint}".`)
           }
           if (!files.length) {
             fs.rmdir(mountpoint, function () { })
