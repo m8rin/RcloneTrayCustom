@@ -1369,7 +1369,7 @@ const mount = function (bookmark) {
       const output = data.toString();
       if (/Failed to unmount:/i.test(output)) {
         console.log(`Force umount "${mountpoint}"`);
-        try {execSync(`umount -l "${mountpoint}"`);} catch(error){}
+        try {execSync(`fusermount -u "${mountpoint}"`);} catch(error){}
       
       }
     })  

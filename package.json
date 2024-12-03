@@ -4,10 +4,10 @@
     "title": "CSync",
     "version": "1.1.1",
     "releaseType": "release",
-    "description": "Simple Rclone bookmark manager GUI that stays in the system tray.",
+    "description": "Rclone bookmark manager GUI for citros webdav that stays in the system tray.",
     "repository": {
         "type": "git",
-        "url": "https://github.com/dimitrov-adrian/RcloneTray"
+        "url": "https://github.com/Ilya240980/CSync/"
     },
     "keywords": [
         "Tray",
@@ -18,9 +18,9 @@
         "Network",
         "Utilities"
     ],
-    "author": "Adrian Dimitrov <dimitrov.adrian@gmail.com>",
+    "author": "Ilya Chibisov <i.chibisov@gmail.com>",
     "bugs": {
-        "url": "https://github.com/dimitrov-adrian/RcloneTray/issues"
+        "url": "https://github.com/Ilya240980/Csync/issues"
     },
     "license": "MIT",
     "main": "src/main.js",
