@@ -11,6 +11,7 @@ const isDev = require('electron-is-dev')
 const settings = require('./settings')
 const dialogs = require('./dialogs')
 const errorHandler = require('./error-handler')
+const statusHandler = require('./status-handler')
 
 let syncinfo
 let sync_change
@@ -281,7 +282,7 @@ class BookmarkProcessManager {
 
     if (isDev) {
       console.log('Rclone[BP]', command)
-      errorHandler.logToFile(command)
+      // errorHandler.logToFile(command)
     }
 
     BookmarkProcessRegistry[id].process.stderr.on('data', this.rcloneProcessWatchdog.bind(this))
@@ -387,7 +388,7 @@ class BookmarkProcessManager {
     // Prepare lineInfo{time,level,message}
     let lineInfo = {}
     this.successNotificationOnSync(logLine)
-    
+
     // Time is Y/m/d H:i:s
     lineInfo.time = logLine.substr(0, 19)
 
@@ -415,15 +416,18 @@ class BookmarkProcessManager {
     if (/Applying changes/i.test(lineInfo.message)){
       sync_change = true
     }
-    
+
 
     if (/Bisync successful/i.test(lineInfo.message) && sync_change) {
       dialogs.notification(syncinfo)
+      statusHandler.removeBookmarkWithFailedStatus(this.bookmarkName);
+      errorHandler.resetNotificationFlag(this.bookmarkName);
     }
 
     // Catch errors in the output, so need to kill the process and refresh
     if (['ERROR'].indexOf(lineInfo.level) !== -1) {
-      errorHandler.handleProcessOutput(lineInfo)
+      statusHandler.addBookmarkWithFailedStatus(this.bookmarkName, lineInfo);
+      errorHandler.handleProcessOutput(this.bookmarkName, lineInfo);
 
       if (/(Statfs failed|IO error: couldn't list files: Propfind)/i.test(lineInfo.message)) {
         unmount(this.bookmarkName);
@@ -484,7 +488,7 @@ class BookmarkProcessManager {
 
     // ERROR логируется в файл в handleProcessOutput(), DEBUG не логируется
     if (['NOTICE', 'INFO'].indexOf(lineInfo.level) !== -1) {
-      errorHandler.logToFile(lineInfo)
+      // errorHandler.logToFile(lineInfo)
     }
   }
 
@@ -934,8 +938,8 @@ const sync = function (method, bookmark) {
             '--force',
             '--recover',
             '--create-empty-src-dirs',
-            bookmark._rclonetray_local_path_map, 
-            getBookmarkRemoteWithRoot(bookmark), 
+            bookmark._rclonetray_local_path_map,
+            getBookmarkRemoteWithRoot(bookmark),
             '--no-check-certificate',
             '-v'];
   proc.create(cmd);
@@ -991,11 +995,11 @@ const sync = function (method, bookmark) {
             dialogs.notification('Первый запуск синхронизации. Выполнение начальной синхронизации с --resync...');
           }
 
-          let resyncCmd = ['bisync', 
+          let resyncCmd = ['bisync',
                           '--resync',
-                          '--create-empty-src-dirs', 
-                          savedData.localPath, 
-                          savedData.remoteRoot, 
+                          '--create-empty-src-dirs',
+                          savedData.localPath,
+                          savedData.remoteRoot,
                           '--no-check-certificate',
                           '-v'];
           let resyncProc = new BookmarkProcessManager(savedData.processName, savedData.bookmarkName);
@@ -1315,6 +1319,8 @@ const mount = function (bookmark) {
     throw Error(`Закладка ${bookmark.$name} уже примонтирована.`)
   }
 
+  statusHandler.removeBookmarkWithFailedStatus(bookmark.$name);
+
   let mountpoint
   if (process.platform === 'win32') {
     mountpoint = win32GetFreeLetter()
@@ -1370,9 +1376,9 @@ const mount = function (bookmark) {
       if (/Failed to unmount:/i.test(output)) {
         console.log(`Force umount "${mountpoint}"`);
         try {execSync(`fusermount -u "${mountpoint}"`);} catch(error){}
-      
+
       }
-    })  
+    })
 
   }
 
@@ -1407,6 +1413,8 @@ const unmount = function (bookmark) {
   if (proc.exists()) {
     proc.kill()
   }
+  statusHandler.removeBookmarkWithFailedStatus(bookmark.$name);
+  errorHandler.resetNotificationFlag(bookmark.$name);
 }
 
 /**

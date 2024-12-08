@@ -2,7 +2,7 @@
     "name": "csync",
     "productName": "CSync",
     "title": "CSync",
-    "version": "1.1.1",
+    "version": "1.1.2",
     "releaseType": "release",
     "description": "Rclone bookmark manager GUI for citros webdav that stays in the system tray.",
     "repository": {

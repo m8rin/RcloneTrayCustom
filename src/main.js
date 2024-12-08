@@ -7,6 +7,9 @@ const dialogs = require('./dialogs')
 const rclone = require('./rclone')
 const tray = require('./tray')
 
+app.setName('CSync');
+app.setAppUserModelId('CSync');
+
 // Error handler
 process.on('uncaughtException', function (error) {
   if (dialogs.uncaughtException(error)) {

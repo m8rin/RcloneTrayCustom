@@ -1,46 +1,78 @@
 'use strict'
 
 const dialogs = require('./dialogs')
-const rclone = require('./rclone')
-const fs = require('fs')
+const fs = require('fs').promises;
 const path = require('path')
-const logFilePath = path.join(__dirname, 'logs.txt') // Путь к файлу логов
+const {app} = require('electron');
+const logFilePath = path.join(app.getPath('userData'), 'logs', 'logs.txt');
 
-// Объект для сопоставления ошибок с сообщениями на русском
+/**
+ * Объекты для сопоставления ошибок с сообщениями на русском
+ *
+ * Флаг alwaysNotify для регулировки спама уведомления
+ * alwaysNotify: false. Уведомление будет показано только один раз для закладки до сброса флага через resetNotificationFlag. Сейчас сбрасывается при 'unmount' и получение лога 'Bisync successful'
+ * alwaysNotify: true. Уведомление будет показано всегда для ошибки с таким флагом
+ */
 const errorMessages = {
   // 'Error while': 'Ошибка во время выполнения',
   // 'Failed to': 'Не удалось выполнить действие',
   // 'Fatal Error': 'Серьезная ошибка',
   // "couldn't connect": 'Не удалось подключиться',
-  "webdav root '': Statfs failed: Propfind": 'Ошибка WebDAV: Не удалось выполнить запрос. Проверьте, правильно ли указан адрес: {url}',
-  "IO error: couldn't list files: Propfind": 'Ошибка ввода-вывода: Не удалось перечислить файлы. Проверьте, правильно ли указан адрес: {url}',
-  "critical error: couldn\'t list files: Propfind":'Ошибка синхронизации: Не удалось получить список файлов. Проверьте наличие соединения.',
-  "webdav root '': Statfs failed: 401": 'Ошибка WebDAV: Неправильный логин или пароль',
-  "Failed to copy: 403": 'Доступ запрещён. Доступ только на чтение',
+  "webdav root '': Statfs failed: Propfind": {
+    message: 'Ошибка WebDAV: Не удалось выполнить запрос. Проверьте, правильно ли указан адрес: {url}',
+    alwaysNotify: false
+  },
+  "IO error: couldn't list files: Propfind": {
+    message: 'Ошибка ввода-вывода: Не удалось перечислить файлы. Проверьте, правильно ли указан адрес: {url}',
+    alwaysNotify: false
+  },
+  "critical error: couldn't list files: Propfind": {
+    message: 'Ошибка синхронизации: Не удалось получить список файлов. Проверьте наличие соединения.',
+    alwaysNotify: false
+  },
+  "webdav root '': Statfs failed: 401": {
+    message: 'Ошибка WebDAV: Неправильный логин или пароль',
+    alwaysNotify: false
+  },
+  "Failed to copy: 403": {
+    message: 'Доступ запрещён. Доступ только на чтение',
+    alwaysNotify: false
+  },
 };
 
+const notificationFlags = {};
+
 /**
- * Запись сообщения в файл логов
+ * Запись сообщения в файл логов асинхронно
  * @param {string} message - Сообщение для записи
  */
-const logToFile = function (message) {
+const logToFile = async function (message) {
   const timestamp = new Date().toISOString();
   const logMessage = `[${timestamp}] ${typeof message === 'object' ? JSON.stringify(message) : message}\n`;
-  // fs.appendFileSync(logFilePath, logMessage, 'utf8');
+
+  try {
+    await fs.appendFile(logFilePath, logMessage, 'utf8');
+  } catch (error) {
+    console.error('Ошибка записи в лог файл:', error);
+  }
 };
 
 /**
  * Обработка ошибок в выводе
+ * @param bookmarkName имя закладки
  * @param {Object} lineInfo - Информация о строке лога
  */
-const handleProcessOutput = function (lineInfo) {
-  let isErrorHandled = false;
-  let userMessage = ''
+const handleProcessOutput = async function (bookmarkName, lineInfo) {
+  let userMessage = '';
+
+  if (bookmarkName && !notificationFlags[bookmarkName]) {
+    notificationFlags[bookmarkName] = false;
+  }
 
   // Проверяем, содержит ли сообщение об ошибке ключевые слова
-  for (const [key, message] of Object.entries(errorMessages)) {
+  for (const [key, {message, alwaysNotify}] of Object.entries(errorMessages)) {
     if (new RegExp(key, 'i').test(lineInfo.message)) {
-      userMessage = message
+      userMessage = message;
 
       // Извлекаем URL из сообщения об ошибке
       const urlMatch = lineInfo.message.match(/"(https?:\/\/[^"]+)"/);
@@ -50,22 +82,40 @@ const handleProcessOutput = function (lineInfo) {
         userMessage = userMessage.replace('{url}', url);
       }
 
-      console.log('Rclone Watchdog lineInfo', lineInfo);
-      dialogs.notification(userMessage); // Отображаем сообщение на русском
-      logToFile(lineInfo);
+      var showNotify = false;
 
+      if (alwaysNotify) {
+        showNotify = true;
+      } else {
+        if (!bookmarkName || !notificationFlags[bookmarkName]) {
+          showNotify = true;
+          notificationFlags[bookmarkName] = true;
+        } else {
+          showNotify = false;
+        }
+      }
+
+      if (showNotify) {
+        dialogs.notification(userMessage);
+      }
+
+      await logToFile(lineInfo);
       return;
     }
   }
 
-  if (!isErrorHandled) {
-    console.log('Rclone Watchdog lineInfo', lineInfo)
-    // dialogs.notification('Неизвестная ошибка. Пожалуйста, проверьте логи для получения дополнительной информации.');
+  console.log('Rclone Watchdog lineInfo', lineInfo);
+};
+
+const resetNotificationFlag = function (bookmarkName) {
+  if (!bookmarkName || !notificationFlags[bookmarkName]) {
+    notificationFlags[bookmarkName] = false;
   }
 };
 
 module.exports = {
   errorMessages,
   logToFile,
-  handleProcessOutput
+  handleProcessOutput,
+  resetNotificationFlag
 };

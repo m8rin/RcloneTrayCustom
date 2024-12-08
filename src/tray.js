@@ -6,6 +6,7 @@ const isDev = require('electron-is-dev')
 const settings = require('./settings')
 const rclone = require('./rclone')
 const dialogs = require('./dialogs')
+const statusHandler = require('./status-handler')
 
 /**
  * Host the initialized Tray object.
@@ -256,6 +257,7 @@ const generateBookmarkActionsSubmenu = function (bookmark) {
 
   // Set the menu item state if there is any kind of connection or current running process.
   let isConnected = isMounted || isDownload || isUpload || isServing || isAutomaticUpload
+  let isFailed = statusHandler.hasBookmarkWithFailedStatus(bookmark.$name);
 
   // Bookmark controls.
   template.submenu.push(
@@ -275,12 +277,12 @@ const generateBookmarkActionsSubmenu = function (bookmark) {
   if (settings.get('tray_menu_show_type')) {
     template.label += ' - ' + bookmark.type.toUpperCase()
   }
-
-  if (process.platform === 'darwin') {
-    // Because Apple likes rhombuses.
-    template.label = (isConnected ? '◆ ' : '') + template.label
+  if (isConnected && isFailed) {
+    template.label = '❌ ' + template.label;
+  } else if (isConnected) {
+    template.label = '🟢 ' + template.label;
   } else {
-    template.label = (isConnected ? '● ' : '○ ') + template.label
+    template.label = '○ ' + template.label;
   }
 
   // Usually should not goes here.
