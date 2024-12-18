@@ -526,7 +526,7 @@ window.renderBookmarkSettings = function (placeholder, providerName, values) {
 
   if (window.$main.settings.get('rclone_sync_enable')) {
     if (mappingFields.length) {
-      tabs.addTab('Маппинг', window.createOptionsFields(mappingFields, 'options', values.options))
+      tabs.addTab('Путь', window.createOptionsFields(mappingFields, 'options', values.options))
     }
   }
 

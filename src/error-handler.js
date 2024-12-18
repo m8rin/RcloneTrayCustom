@@ -26,7 +26,7 @@ const errorMessages = {
     message: 'Ошибка ввода-вывода: Не удалось перечислить файлы. Проверьте, правильно ли указан адрес: {url}',
     alwaysNotify: false
   },
-  "critical error: couldn't list files: Propfind": {
+  "critical error: couldn\'t list files: Propfind": {
     message: 'Ошибка синхронизации: Не удалось получить список файлов. Проверьте наличие соединения.',
     alwaysNotify: false
   },

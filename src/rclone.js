@@ -941,6 +941,8 @@ const sync = function (method, bookmark) {
             bookmark._rclonetray_local_path_map,
             getBookmarkRemoteWithRoot(bookmark),
             '--no-check-certificate',
+            '--timeout=10s',
+            '--contimeout=5s',
             '-v'];
   proc.create(cmd);
   let resync_f = false;
@@ -1001,6 +1003,8 @@ const sync = function (method, bookmark) {
                           savedData.localPath,
                           savedData.remoteRoot,
                           '--no-check-certificate',
+                          '--timeout=10s',
+                          '--contimeout=5s',
                           '-v'];
           let resyncProc = new BookmarkProcessManager(savedData.processName, savedData.bookmarkName);
           resyncProc.create(resyncCmd);
@@ -1353,6 +1357,7 @@ const mount = function (bookmark) {
     '--no-check-certificate',
     '--vfs-cache-mode=minimal',
     '--timeout=10s',
+    '--contimeout=5s',
     '--vfs-read-wait=30ms'
   ])
   proc.set('mountpoint', mountpoint)
