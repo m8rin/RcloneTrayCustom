@@ -31,12 +31,16 @@ const errorMessages = {
     alwaysNotify: false
   },
   "webdav root '': Statfs failed: 401": {
-    message: 'Ошибка WebDAV: Неправильный логин или пароль',
+    message: 'Ошибка WebDAV: Неправильный логин или пароль.',
     alwaysNotify: false
   },
   "Failed to copy: 403": {
-    message: 'Доступ запрещён. Доступ только на чтение',
+    message: 'Доступ запрещён. Доступ только на чтение.',
     alwaysNotify: false
+  },
+  "IO error: 403 Forbidden": {
+    message: 'Доступ запрещен. Доступ только на чтение.',
+    alwaysNotify: true
   },
 };
 

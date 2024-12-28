@@ -429,7 +429,8 @@ class BookmarkProcessManager {
       statusHandler.addBookmarkWithFailedStatus(this.bookmarkName, lineInfo);
       errorHandler.handleProcessOutput(this.bookmarkName, lineInfo);
 
-      if (/(Statfs failed|IO error: couldn't list files: Propfind)/i.test(lineInfo.message)) {
+      if (/(Statfs failed|IO error: couldn't list files:)/i.test(lineInfo.message)) {
+        dialogs.notification('Ошибка! Проверьте параметры соединения.')
         unmount(this.bookmarkName);
       }
 
@@ -1353,7 +1354,7 @@ const mount = function (bookmark) {
     '--dir-cache-time', Math.max(1, parseInt(settings.get('rclone_cache_directories'))) + 's',
     '--allow-non-empty',
     '--volname', bookmark.$name,
-    '-vv',
+    '-v',
     '--no-check-certificate',
     '--vfs-cache-mode=minimal',
     '--timeout=10s',
@@ -1361,7 +1362,10 @@ const mount = function (bookmark) {
     '--vfs-read-wait=30ms'
   ])
   proc.set('mountpoint', mountpoint)
-
+  dialogs.notification(`Подключение ${bookmark.$name}`)
+  fireRcloneUpdateActions()
+  //this.set('OK', true)
+  
   if (process.platform === 'linux') {
     proc.getProcess().on('close', function()  {
       freeMountpointDirectory(mountpoint)
@@ -1380,7 +1384,7 @@ const mount = function (bookmark) {
       const output = data.toString();
       if (/Failed to unmount:/i.test(output)) {
         console.log(`Force umount "${mountpoint}"`);
-        try {execSync(`fusermount -u "${mountpoint}"`);} catch(error){}
+        try {execSync(`fusermount -uz "${mountpoint}"`);} catch(error){}
 
       }
     })
@@ -1628,7 +1632,7 @@ const serveStart = function (protocol, bookmark) {
     getBookmarkRemoteWithRoot(bookmark),
     '--attr-timeout', Math.max(1, parseInt(settings.get('rclone_cache_files'))) + 's',
     '--dir-cache-time', Math.max(1, parseInt(settings.get('rclone_cache_directories'))) + 's',
-    '-vv'
+    '-v'
   ])
   proc.set('protocol', protocol)
   fireRcloneUpdateActions()

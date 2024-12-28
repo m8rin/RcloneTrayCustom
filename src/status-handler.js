@@ -6,7 +6,7 @@ const messages = [
   "critical error: couldn\'t list files: Propfind",
   "webdav root '': Statfs failed: 401",
   "Failed to copy: 403"
-];
+  ];
 
 const bookmarksWithFailedStatus = new Set();
 
