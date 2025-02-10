@@ -1,126 +1,208 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
-
   <head>
-    <script defer>
-      $main.loadStyles()
+    <title>Добавить закладку</title>
+    <meta charset="UTF-8" />
+    <script>
+      window.$main.loadStyles();
 
       /**
        * Add available providers as options to select HTML element
        * @param {HTMLSelectElement} selectElement
        */
-      window.renderAvailableProvidersSelectOptions = function (selectElement) {
-        let optionsContainer = document.createDocumentFragment()
-        let providers = window.$main.rclone.getProviders()
-        let emptyOption = document.createElement('option')
-        emptyOption.value = ''
-        emptyOption.innerHTML = '&mdash; Выберите провайдер &mdash;'
-        optionsContainer.appendChild(emptyOption)
+      window.renderAvailableProvidersSelectOptions = async function (
+        selectElement
+      ) {
+        let optionsContainer = document.createDocumentFragment();
+        let providers = await window.$main.rclone.getProviders();
+        let emptyOption = document.createElement("option");
+        emptyOption.value = "";
+        emptyOption.innerHTML = "&mdash; Выберите провайдер &mdash;";
+        optionsContainer.appendChild(emptyOption);
 
         for (let providerName in providers) {
-          if (providerName == 'webdav' || providerName == 'local') {
-            let option = document.createElement('option')
-            option.value = providerName
+          if (providerName == "webdav" || providerName == "local") {
+            let option = document.createElement("option");
+            option.value = providerName;
 
-            if (providerName == 'local') {
-              option.innerText = 'Локальный диск'
+            if (providerName == "local") {
+              option.innerText = "Локальный диск";
             } else {
-              option.innerText = providers[providerName].Description
+              option.innerText = providers[providerName].Description;
             }
 
-            option.providerObject = providers[providerName]
-            optionsContainer.appendChild(option)
+            option.providerObject = providers[providerName];
+            optionsContainer.appendChild(option);
           }
         }
 
-        let range = document.createRange()
-        range.selectNodeContents(selectElement)
-        range.deleteContents()
-        selectElement.appendChild(optionsContainer)
+        let range = document.createRange();
+        range.selectNodeContents(selectElement);
+        range.deleteContents();
+        selectElement.appendChild(optionsContainer);
+      };
+
+      window.renderBookmarkSettings = function (element, type) {
+        const provider = window.$main.rclone.getProviders()[type];
+        if (!provider) return;
+
+        let html = "";
+        if (provider.Options && provider.Options.length > 0) {
+          provider.Options.forEach(function (option) {
+            if (option.Hide) return;
+
+            html += `
+              <div class="row">
+                <div class="cell-left">
+                  <label>${option.$Label || option.Name}</label>
+                  ${
+                    option.Required
+                      ? '<div class="label-required">обязательное</div>'
+                      : ""
+                  }
+                </div>
+                <div class="cell-right">
+                  ${renderOptionInput(option)}
+                  ${option.Help ? `<div class="help">${option.Help}</div>` : ""}
+                </div>
+              </div>
+            `;
+          });
+        }
+        element.innerHTML = html;
+      };
+
+      function renderOptionInput(option) {
+        let input = "";
+        switch (option.$Type || "text") {
+          case "boolean":
+            input = `
+              <select name="options.${option.Name}" style="width: 100%">
+                <option value="true" ${
+                  option.Value === true ? "selected" : ""
+                }>Да</option>
+                <option value="false" ${
+                  option.Value === false ? "selected" : ""
+                }>Нет</option>
+              </select>
+            `;
+            break;
+          case "password":
+            input = `<input type="password" name="options.${
+              option.Name
+            }" value="${option.Value || ""}" style="width: 100%">`;
+            break;
+          case "select":
+            input = `
+              <select name="options.${option.Name}" style="width: 100%">
+                ${(option.Examples || [])
+                  .map(
+                    (example) => `
+                  <option value="${example.Value}" ${
+                      option.Value === example.Value ? "selected" : ""
+                    }>
+                    ${example.Label || example.Value}
+                  </option>
+                `
+                  )
+                  .join("")}
+              </select>
+            `;
+            break;
+          default:
+            input = `<input type="text" name="options.${option.Name}" value="${
+              option.Value || ""
+            }" style="width: 100%">`;
+        }
+        return input;
       }
 
-      document.addEventListener('DOMContentLoaded', function () {
+      document.addEventListener("DOMContentLoaded", async function () {
+        const theForm = document.getElementById("the-form");
+        const providerSettingsWrapper = document.getElementById(
+          "provider-settings-wrapper"
+        );
+        const bookmarkSettingsWrapper =
+          document.getElementById("bookmark-settings");
 
-        const theForm = document.getElementById('the-form')
-        const providerSettingsWrapper = document.getElementById('provider-settings-wrapper')
-        const bookmarkSettingsWrapper = document.getElementById('bookmark-settings')
+        const providersListSelect = document.getElementById("providers-list");
+        providersListSelect.addEventListener("change", function () {
+          if (
+            this.selectedOptions.length > 0 &&
+            this.selectedOptions[0].hasOwnProperty("providerObject")
+          ) {
+            let provider = this.selectedOptions[0].providerObject;
 
-        const providersListSelect = document.getElementById('providers-list');
-        providersListSelect.addEventListener('change', function () {
-          if (this.selectedOptions.length > 0 && this.selectedOptions[0].hasOwnProperty('providerObject')) {
-            let provider = this.selectedOptions[0].providerObject
-
-            if (provider.Name == 'local') {
-              provider.Description = 'Локальный диск'
+            if (provider.Name == "local") {
+              provider.Description = "Локальный диск";
             }
 
-            document.title = `Создать новую закладку (${provider.Description})`
-            renderBookmarkSettings(bookmarkSettingsWrapper, this.value)
-            providerSettingsWrapper.style.display = null
+            document.title = `Создать новую закладку (${provider.Description})`;
+            window.renderBookmarkSettings(bookmarkSettingsWrapper, this.value);
+            providerSettingsWrapper.style.display = null;
           } else {
-            document.title = 'Создать новую закладку'
-            providerSettingsWrapper.style.display = 'none'
-            bookmarkSettingsWrapper.innerHTML = ''
+            document.title = "Создать новую закладку";
+            providerSettingsWrapper.style.display = "none";
+            bookmarkSettingsWrapper.innerHTML = "";
           }
-          resizeToContent()
-        })
-        providersListSelect.dispatchEvent(new Event('change'))
-        renderAvailableProvidersSelectOptions(providersListSelect)
+          window.resizeToContent();
+        });
 
-        theForm.addEventListener('submit', function (event) {
+        await window.renderAvailableProvidersSelectOptions(providersListSelect);
+        providersListSelect.dispatchEvent(new Event("change"));
+
+        theForm.addEventListener("submit", async function (event) {
           event.preventDefault();
-
-          let data = getTheFormData(this)
-
-          $main.rclone.addBookmark(data.type, data.name, data.options)
-            .then(window.close)
-            .catch(window.errorBox)
-        })
+          const formData = new FormData(this);
+          try {
+            await window.$main.rclone.addBookmark(
+              formData.get("type"),
+              formData.get("name"),
+              Object.fromEntries(formData)
+            );
+            window.close();
+          } catch (error) {
+            alert(error.message);
+          }
+        });
       });
     </script>
   </head>
 
   <body>
-
+    <h1>Добавить закладку</h1>
     <form id="the-form">
-
       <div class="row">
-        <div class="cell-left">
-          Тип подключения
-        </div>
+        <div class="cell-left">Тип подключения</div>
         <div class="cell-right">
-          <select name="type" id="providers-list" style="width:20em;"></select>
+          <select name="type" id="providers-list" style="width: 100%"></select>
         </div>
       </div>
 
-      <div id="provider-settings-wrapper">
-
+      <div id="provider-settings-wrapper" style="display: none">
         <div class="row">
           <div class="cell-left">
-            <label>
-              Имя
-            </label>
-            <div class="label-required">
-              обязательное
-            </div>
+            <label>Имя</label>
+            <div class="label-required">обязательное</div>
           </div>
           <div class="cell-right">
-            <input type="text" name="name" value="" maxlength="20" size="20" style="width:12em" />
+            <input
+              type="text"
+              name="name"
+              value=""
+              maxlength="20"
+              size="20"
+              style="width: 100%"
+            />
           </div>
         </div>
 
         <div id="bookmark-settings"></div>
 
         <div class="row right buttons">
-          <button type="submit">
-            Добавить
-          </button>
+          <button type="submit">Добавить</button>
         </div>
-
       </div>
-
     </form>
-
   </body>
-
 </html>
