@@ -13,63 +13,98 @@
       window.renderAvailableProvidersSelectOptions = async function (
         selectElement
       ) {
-        let optionsContainer = document.createDocumentFragment();
-        let providers = await window.$main.rclone.getProviders();
-        let emptyOption = document.createElement("option");
-        emptyOption.value = "";
-        emptyOption.innerHTML = "&mdash; Выберите провайдер &mdash;";
-        optionsContainer.appendChild(emptyOption);
+        try {
+          console.log("Запрашиваем список провайдеров...");
+          let providers = await window.$main.rclone.getProviders();
+          console.log("Получены провайдеры:", providers);
 
-        for (let providerName in providers) {
-          if (providerName == "webdav" || providerName == "local") {
-            let option = document.createElement("option");
-            option.value = providerName;
-
-            if (providerName == "local") {
-              option.innerText = "Локальный диск";
-            } else {
-              option.innerText = providers[providerName].Description;
-            }
-
-            option.providerObject = providers[providerName];
-            optionsContainer.appendChild(option);
+          if (!providers) {
+            console.error("Провайдеры не получены");
+            window.$main.dialog.showError(
+              "Не удалось получить список провайдеров"
+            );
+            return;
           }
-        }
 
-        let range = document.createRange();
-        range.selectNodeContents(selectElement);
-        range.deleteContents();
-        selectElement.appendChild(optionsContainer);
+          let optionsContainer = document.createDocumentFragment();
+          let emptyOption = document.createElement("option");
+          emptyOption.value = "";
+          emptyOption.innerHTML = "&mdash; Выберите провайдер &mdash;";
+          optionsContainer.appendChild(emptyOption);
+
+          for (let providerName in providers) {
+            if (providerName == "webdav" || providerName == "local") {
+              let option = document.createElement("option");
+              option.value = providerName;
+
+              if (providerName == "local") {
+                option.innerText = "Локальный диск";
+              } else {
+                option.innerText = providers[providerName].Description;
+              }
+
+              option.providerObject = providers[providerName];
+              optionsContainer.appendChild(option);
+            }
+          }
+
+          let range = document.createRange();
+          range.selectNodeContents(selectElement);
+          range.deleteContents();
+          selectElement.appendChild(optionsContainer);
+        } catch (error) {
+          console.error("Ошибка при загрузке провайдеров:", error);
+          window.$main.dialog.showError(
+            `Ошибка при загрузке провайдеров: ${error.message}`
+          );
+        }
       };
 
-      window.renderBookmarkSettings = function (element, type) {
-        const provider = window.$main.rclone.getProviders()[type];
-        if (!provider) return;
+      window.renderBookmarkSettings = async function (element, type) {
+        try {
+          console.log("Запрашиваем настройки для провайдера:", type);
+          const providers = await window.$main.rclone.getProviders();
+          console.log("Получены провайдеры:", providers);
+          const provider = providers[type];
+          if (!provider) {
+            console.error("Провайдер не найден:", type);
+            return;
+          }
 
-        let html = "";
-        if (provider.Options && provider.Options.length > 0) {
-          provider.Options.forEach(function (option) {
-            if (option.Hide) return;
+          let html = "";
+          if (provider.Options && provider.Options.length > 0) {
+            provider.Options.forEach(function (option) {
+              if (option.Hide) return;
 
-            html += `
-              <div class="row">
-                <div class="cell-left">
-                  <label>${option.$Label || option.Name}</label>
-                  ${
-                    option.Required
-                      ? '<div class="label-required">обязательное</div>'
-                      : ""
-                  }
+              html += `
+                <div class="row">
+                  <div class="cell-left">
+                    <label>${option.$Label || option.Name}</label>
+                    ${
+                      option.Required
+                        ? '<div class="label-required">обязательное</div>'
+                        : ""
+                    }
+                  </div>
+                  <div class="cell-right">
+                    ${renderOptionInput(option)}
+                    ${
+                      option.Help
+                        ? `<div class="help">${option.Help}</div>`
+                        : ""
+                    }
+                  </div>
                 </div>
-                <div class="cell-right">
-                  ${renderOptionInput(option)}
-                  ${option.Help ? `<div class="help">${option.Help}</div>` : ""}
-                </div>
-              </div>
-            `;
-          });
+              `;
+            });
+          }
+          element.innerHTML = html;
+        } catch (error) {
+          console.error("Ошибка при загрузке настроек:", error);
+          window.$main.dialog.showError(
+            `Ошибка при загрузке настроек: ${error.message}`
+          );
         }
-        element.innerHTML = html;
       };
 
       function renderOptionInput(option) {
@@ -107,6 +142,18 @@
                   )
                   .join("")}
               </select>
+            `;
+            break;
+          case "directory":
+            input = `
+              <div class="input-group">
+                <input type="text" name="options.${option.Name}" value="${
+              option.Value || ""
+            }" style="width: calc(100% - 40px)">
+                <button type="button" class="directory-picker" data-input="options.${
+                  option.Name
+                }">...</button>
+              </div>
             `;
             break;
           default:

@@ -38,6 +38,7 @@ contextBridge.exposeInMainWorld('$main', {
         border: 1px solid #ccc;
         background: #fff;
         border-radius: 4px;
+        min-width: 80px;
       }
       
       button:hover {
@@ -46,9 +47,11 @@ contextBridge.exposeInMainWorld('$main', {
       
       input, select {
         width: 100%;
-        padding: 6px;
+        padding: 6px 8px;
         border: 1px solid #ccc;
         border-radius: 4px;
+        height: 28px;
+        background: white;
       }
       
       .label-required {
@@ -93,20 +96,33 @@ contextBridge.exposeInMainWorld('$main', {
         height: 26px;
         padding: 0 8px;
       }
+
+      .input-group {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .directory-picker {
+        width: 32px;
+        height: 28px;
+        padding: 0;
+        min-width: unset;
+      }
     `
     document.head.appendChild(style)
   },
   getProps: () => window.$props || {},
   settings: {
-    get: (key) => ipcRenderer.sendSync('settings-get', key),
-    set: (key, value) => ipcRenderer.sendSync('settings-set', key, value),
-    merge: (data) => ipcRenderer.sendSync('settings-merge', data)
+    get: (key) => ipcRenderer.invoke('settings-get', key),
+    set: (key, value) => ipcRenderer.invoke('settings-set', key, value),
+    merge: (data) => ipcRenderer.invoke('settings-merge', data)
   },
   rclone: {
     getProviders: () => ipcRenderer.invoke('rclone-get-providers'),
     getConfigFile: () => ipcRenderer.invoke('rclone-get-config-file'),
-    addBookmark: (type, name, options) => ipcRenderer.invoke('rclone-add-bookmark', type, name, options),
-    updateBookmark: (name, options) => ipcRenderer.invoke('rclone-update-bookmark', name, options),
+    addBookmark: (...args) => ipcRenderer.invoke('rclone-add-bookmark', ...args),
+    updateBookmark: (...args) => ipcRenderer.invoke('rclone-update-bookmark', ...args),
     deleteBookmark: (name) => ipcRenderer.invoke('rclone-delete-bookmark', name)
   },
   refreshTray: () => ipcRenderer.send('refresh-tray'),
@@ -114,7 +130,11 @@ contextBridge.exposeInMainWorld('$main', {
   setAutostart: (value) => ipcRenderer.sendSync('set-autostart', value),
   errorBox: (error) => ipcRenderer.send('show-error-box', error),
   checkForRequiredRestart: () => ipcRenderer.send('check-for-required-restart'),
-  resizeWindow: (width, height) => ipcRenderer.send('resize-window', width, height)
+  resizeWindow: (width, height) => ipcRenderer.send('resize-window', width, height),
+  dialog: {
+    showError: (message) => ipcRenderer.send('show-error', message),
+    showInfo: (message) => ipcRenderer.send('show-info', message)
+  }
 })
 
 // Добавляем вспомогательные функции

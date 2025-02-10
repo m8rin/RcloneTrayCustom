@@ -99,20 +99,20 @@ app.on('window-all-closed', (event) => {
 app.on('before-quit', rclone.prepareQuit)
 
 // Добавьте обработчики IPC
-ipcMain.on('settings-get', (event, key) => {
-  event.returnValue = settings.get(key)
+ipcMain.handle('settings-get', (event, key) => {
+  return settings.get(key)
 })
 
-ipcMain.on('settings-set', (event, key, value) => {
+ipcMain.handle('settings-set', (event, key, value) => {
   settings.set(key, value)
-  event.returnValue = true
+  return true
 })
 
-ipcMain.on('settings-merge', (event, data) => {
+ipcMain.handle('settings-merge', (event, data) => {
   Object.entries(data).forEach(([key, value]) => {
     settings.set(key, value)
   })
-  event.returnValue = true
+  return true
 })
 
 ipcMain.on('refresh-tray', () => {
@@ -131,25 +131,32 @@ ipcMain.on('set-autostart', (event, value) => {
   event.returnValue = true
 })
 
-ipcMain.on('show-error-box', (event, error) => {
-  dialog.showErrorBox('Ошибка', error.message || error.toString())
+ipcMain.on('show-error', (event, message) => {
+  dialog.showErrorBox('Ошибка', message)
 })
 
-ipcMain.on('check-for-required-restart', () => {
+ipcMain.on('show-info', (event, message) => {
   dialog.showMessageBox({
     type: 'info',
     buttons: ['OK'],
-    title: 'Требуется перезапуск',
-    message: 'Некоторые изменения требуют перезапуска приложения для применения.'
+    message
   })
 })
 
-ipcMain.on('rclone-get-providers', (event) => {
-  event.returnValue = rclone.getProviders()
+ipcMain.on('resize-window', (event, width, height) => {
+  const win = BrowserWindow.fromWebContents(event.sender)
+  if (win) {
+    win.setSize(width, height)
+  }
 })
 
-ipcMain.on('rclone-get-config-file', (event) => {
-  event.returnValue = rclone.getConfigFile()
+// Добавляем обработчики для rclone
+ipcMain.handle('rclone-get-providers', () => {
+  return rclone.getProviders()
+})
+
+ipcMain.handle('rclone-get-config-file', () => {
+  return rclone.getConfigFile()
 })
 
 ipcMain.handle('rclone-add-bookmark', async (event, type, name, options) => {
@@ -162,13 +169,6 @@ ipcMain.handle('rclone-update-bookmark', async (event, name, options) => {
 
 ipcMain.handle('rclone-delete-bookmark', async (event, name) => {
   return await rclone.deleteBookmark(name)
-})
-
-ipcMain.on('resize-window', (event, width, height) => {
-  const win = BrowserWindow.fromWebContents(event.sender)
-  if (win) {
-    win.setSize(width, height)
-  }
 })
 
 new Application()

@@ -7,16 +7,6 @@ const isDev = require('electron-is-dev')
 const settings = require('./settings')
 
 /**
- * Set the background color
- * @private
- */
-const backgroundColor = process.platform === 'darwin'
-  ? '#ececec'
-  : process.platform === 'win32'
-    ? '#ffffff'
-    : '#dddddd'
-
-/**
  * Dialog names that should be opened with single instances
  * @type {{}}
  * @private
@@ -37,95 +27,85 @@ const iconsPath = path.join(resourcePath, 'ui', 'icons')
  * @private
  */
 const createNewDialog = function (dialogName, options, props) {
-  console.log('Creating dialog:', dialogName, 'with options:', options)
-  
   let singleId = options && options.hasOwnProperty('$singleId')
   if (singleId) {
-    console.log('Dialog has singleId')
     delete options['$singleId']
     singleId = dialogName + '/' + singleId.toString()
-    console.log('SingleId:', singleId)
     if (dialogsSingletoneInstances.hasOwnProperty(singleId) && dialogsSingletoneInstances[singleId]) {
-      console.log('Found existing dialog instance, focusing')
       dialogsSingletoneInstances[singleId].focus()
       return dialogsSingletoneInstances[singleId]
     }
   }
 
-  console.log('Creating new BrowserWindow')
-  try {
-    let theDialog = new BrowserWindow({
-      show: false,
-      width: 600,
-      height: 400,
-      parent: null,
-      modal: true,
-      webPreferences: {
-        preload: path.join(__dirname, '..', 'preload', 'dialogs-preload.js'),
-        contextIsolation: true,
-        nodeIntegration: false
-      }
-    })
-    console.log('BrowserWindow created successfully')
-
-    console.log('Configuring window properties')
-    theDialog.center()
-    theDialog.setResizable(false)
-    theDialog.setMaximizable(false)
-    theDialog.setAutoHideMenuBar(true)
-    theDialog.setMinimizable(false)
-    theDialog.setFullScreenable(false)
-
-    console.log('Setting up event listeners')
-    theDialog.on('ready-to-show', () => {
-      console.log('Dialog ready to show')
-      theDialog.show()
-    })
-    
-    theDialog.on('show', () => {
-      console.log('Dialog shown')
-      app.focus()
-    })
-
-    theDialog.on('closed', () => {
-      console.log('Dialog closed')
-      if (singleId) {
-        delete dialogsSingletoneInstances[singleId]
-      }
-      if (process.platform === 'darwin' && BrowserWindow.getAllWindows().length < 1) {
-        app.dock.hide()
-      }
-      theDialog = null
-    })
-
-    console.log('Loading HTML file')
-    const htmlPath = path.join(__dirname, '..', 'ui', 'dialogs', dialogName + '.html')
-    console.log('HTML path:', htmlPath)
-    theDialog.loadFile(htmlPath)
-
-    if (process.platform === 'darwin') {
-      console.log('Configuring macOS specific settings')
-      app.dock.show()
-      theDialog.setVibrancy('window')
+  // Базовые настройки для всех диалогов
+  const defaultOptions = {
+    width: 600,
+    height: 400,
+    show: false,
+    modal: true,
+    minimizable: false,
+    maximizable: false,
+    fullscreenable: false,
+    resizable: false,
+    autoHideMenuBar: true,
+    useContentSize: true,
+    backgroundColor: process.platform === 'darwin' ? '#ececec' : '#ffffff',
+    webPreferences: {
+      preload: path.join(__dirname, '..', 'preload', 'dialogs-preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      enableRemoteModule: false,
+      worldSafeExecuteJavaScript: true
     }
-
-    if (singleId) {
-      console.log('Storing dialog instance with singleId:', singleId)
-      dialogsSingletoneInstances[singleId] = theDialog
-    }
-
-    theDialog.$props = props || {}
-
-    theDialog.webContents.on('new-window', (event, url) => {
-      event.preventDefault()
-      shell.openExternal(url)
-    })
-
-    return theDialog
-  } catch (error) {
-    console.error('Error creating dialog:', error)
-    throw error
   }
+
+  // Объединяем с пользовательскими настройками
+  const finalOptions = { ...defaultOptions, ...options }
+
+  let theDialog = new BrowserWindow(finalOptions)
+  
+  // Настройки для macOS
+  if (process.platform === 'darwin') {
+    app.dock.show()
+    theDialog.setVibrancy('window')
+  }
+
+  // Устанавливаем свойства и обработчики
+  theDialog.$props = props || {}
+  
+  theDialog.once('ready-to-show', () => {
+    theDialog.show()
+    if (!isDev) {
+      theDialog.focus()
+    }
+  })
+
+  theDialog.on('closed', () => {
+    if (singleId) {
+      delete dialogsSingletoneInstances[singleId]
+    }
+    if (process.platform === 'darwin' && BrowserWindow.getAllWindows().length < 1) {
+      app.dock.hide()
+    }
+    theDialog = null
+  })
+
+  // Открываем ссылки в системном браузере
+  theDialog.webContents.setWindowOpenHandler(({ url }) => {
+    shell.openExternal(url)
+    return { action: 'deny' }
+  })
+
+  // Загружаем HTML файл
+  const htmlPath = path.join(__dirname, '..', 'ui', 'dialogs', dialogName + '.html')
+  theDialog.loadFile(htmlPath)
+
+  // Сохраняем экземпляр для единичных окон
+  if (singleId) {
+    dialogsSingletoneInstances[singleId] = theDialog
+  }
+
+  return theDialog
 }
 
 /**
@@ -157,38 +137,36 @@ const createNewDialog = function (dialogName, options, props) {
  * Show Preferences dialog
  */
 const preferences = function () {
-  console.log('Opening preferences dialog')
-  let dialog = createNewDialog('Preferences', {
-    $singleId: 1
+  return createNewDialog('Preferences', {
+    $singleId: 1,
+    width: 600,
+    height: 400,
+    title: 'Настройки'
   })
-  console.log('Setting preferences dialog size')
-  dialog.setSize(600, 300)
 }
 
 /**
  * Show new Bookmark dialog
  */
 const addBookmark = function () {
-  console.log('Opening add bookmark dialog')
-  let dialog = createNewDialog('AddBookmark', {
-    $singleId: 1
+  return createNewDialog('AddBookmark', {
+    $singleId: 1,
+    width: 600,
+    height: 200,
+    title: 'Добавить закладку'
   })
-  console.log('Setting add bookmark dialog size')
-  dialog.setSize(600, 100)
 }
 
 /**
  * Show edit Bookmark dialog
  */
 const editBookmark = function () {
-  console.log('Opening edit bookmark dialog')
-  let props = this
-  console.log('Edit bookmark props:', props)
-  let dialog = createNewDialog('EditBookmark', {
-    $singleId: this.$name
-  }, props)
-  console.log('Setting edit bookmark dialog size')
-  dialog.setSize(600, 460)
+  return createNewDialog('EditBookmark', {
+    $singleId: this.$name,
+    width: 600,
+    height: 460,
+    title: 'Редактировать закладку'
+  }, this)
 }
 
 /**
