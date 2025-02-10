@@ -4,10 +4,10 @@
     <title>Настройки</title>
     <meta charset="UTF-8" />
     <script defer>
-      window.$main.loadStyles();
+      $main.loadStyles();
 
       document.addEventListener("DOMContentLoaded", function () {
-        let tabs = window.createTabsElement();
+        let tabs = createTabsElement();
         document.getElementById("preferences").appendChild(tabs);
 
         tabs.addTab(

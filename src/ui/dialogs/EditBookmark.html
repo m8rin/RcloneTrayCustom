@@ -4,27 +4,29 @@
     <title>Редактировать закладку</title>
     <meta charset="UTF-8" />
     <script>
-      window.$main.loadStyles();
+      $main.loadStyles();
       document.title = `Редактировать ${$main.getProps().$name}`;
 
       document.addEventListener("DOMContentLoaded", function () {
-        const props = window.$main.getProps();
-        document.getElementById("bookmarkName").textContent = props.$name;
-
-        const form = document.getElementById("editForm");
-        form.addEventListener("submit", async (e) => {
-          e.preventDefault();
-          const formData = new FormData(form);
-          try {
-            await window.$main.rclone.updateBookmark(
-              props.$name,
-              Object.fromEntries(formData)
-            );
-            window.close();
-          } catch (error) {
-            alert(error.message);
+        let opts = window.$main.getProps();
+        renderBookmarkSettings(
+          document.getElementById("bookmark-settings"),
+          window.$main.getProps().type,
+          {
+            options: opts,
           }
-        });
+        );
+
+        document
+          .getElementById("the-form")
+          .addEventListener("submit", function (event) {
+            event.preventDefault();
+            let data = getTheFormData(this);
+            $main.rclone
+              .updateBookmark($main.getProps().$name, data.options)
+              .then(window.close)
+              .catch(window.errorBox);
+          });
 
         document
           .getElementById("delete-bookmark-button")
@@ -43,7 +45,7 @@
 
   <body>
     <h2>Редактировать закладку: <span id="bookmarkName"></span></h2>
-    <form id="editForm">
+    <form id="the-form">
       <div class="row">
         <div class="cell-left">Тип</div>
         <div class="cell-right">

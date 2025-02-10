@@ -171,4 +171,18 @@ ipcMain.handle('rclone-delete-bookmark', async (event, name) => {
   return await rclone.deleteBookmark(name)
 })
 
+ipcMain.handle('show-directory-picker', async () => {
+  const result = await dialog.showOpenDialog({
+    properties: ['openDirectory']
+  })
+  return result.filePaths[0]
+})
+
+ipcMain.handle('show-file-picker', async () => {
+  const result = await dialog.showOpenDialog({
+    properties: ['openFile']
+  })
+  return result.filePaths[0]
+})
+
 new Application()

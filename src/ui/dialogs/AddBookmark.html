@@ -3,110 +3,131 @@
   <head>
     <title>Добавить закладку</title>
     <meta charset="UTF-8" />
-    <script>
-      window.$main.loadStyles();
+    <script defer>
+      $main.loadStyles();
 
-      /**
-       * Add available providers as options to select HTML element
-       * @param {HTMLSelectElement} selectElement
-       */
-      window.renderAvailableProvidersSelectOptions = async function (
-        selectElement
-      ) {
-        try {
-          console.log("Запрашиваем список провайдеров...");
-          let providers = await window.$main.rclone.getProviders();
-          console.log("Получены провайдеры:", providers);
+      document.addEventListener("DOMContentLoaded", function () {
+        const dialog = document.querySelector("dialog");
+        const theForm = document.getElementById("the-form");
+        const providerSettingsWrapper = document.getElementById(
+          "provider-settings-wrapper"
+        );
+        const bookmarkSettingsWrapper =
+          document.getElementById("bookmark-settings");
+        const providersListSelect = document.getElementById("providers-list");
 
-          if (!providers) {
-            console.error("Провайдеры не получены");
-            window.$main.dialog.showError(
-              "Не удалось получить список провайдеров"
+        // Показываем диалог
+        dialog.showModal();
+
+        // Добавляем опции провайдеров
+        let providers = window.$main.rclone.getProviders();
+        let optionsContainer = document.createDocumentFragment();
+
+        // Пустая опция
+        let emptyOption = document.createElement("option");
+        emptyOption.value = "";
+        emptyOption.innerHTML = "&mdash; Выберите провайдер &mdash;";
+        optionsContainer.appendChild(emptyOption);
+
+        // Добавляем провайдеры
+        for (let providerName in providers) {
+          if (providerName === "webdav" || providerName === "local") {
+            let option = document.createElement("option");
+            option.value = providerName;
+            option.innerText =
+              providerName === "local"
+                ? "Локальный диск"
+                : providers[providerName].Description;
+            optionsContainer.appendChild(option);
+          }
+        }
+
+        providersListSelect.innerHTML = "";
+        providersListSelect.appendChild(optionsContainer);
+
+        // Обработчик изменения провайдера
+        providersListSelect.addEventListener("change", function () {
+          const selectedProvider = this.value;
+
+          if (selectedProvider) {
+            const provider = providers[selectedProvider];
+            document.title = `Добавить закладку (${
+              provider.Description || this.selectedOptions[0].innerText
+            })`;
+            window.renderBookmarkSettings(
+              bookmarkSettingsWrapper,
+              selectedProvider
             );
-            return;
+            providerSettingsWrapper.style.display = null;
+          } else {
+            document.title = "Добавить закладку";
+            providerSettingsWrapper.style.display = "none";
+            bookmarkSettingsWrapper.innerHTML = "";
           }
 
-          let optionsContainer = document.createDocumentFragment();
-          let emptyOption = document.createElement("option");
-          emptyOption.value = "";
-          emptyOption.innerHTML = "&mdash; Выберите провайдер &mdash;";
-          optionsContainer.appendChild(emptyOption);
-
-          for (let providerName in providers) {
-            if (providerName == "webdav" || providerName == "local") {
-              let option = document.createElement("option");
-              option.value = providerName;
-
-              if (providerName == "local") {
-                option.innerText = "Локальный диск";
-              } else {
-                option.innerText = providers[providerName].Description;
-              }
-
-              option.providerObject = providers[providerName];
-              optionsContainer.appendChild(option);
-            }
+          if (typeof resizeToContent === "function") {
+            resizeToContent();
           }
+        });
 
-          let range = document.createRange();
-          range.selectNodeContents(selectElement);
-          range.deleteContents();
-          selectElement.appendChild(optionsContainer);
-        } catch (error) {
-          console.error("Ошибка при загрузке провайдеров:", error);
-          window.$main.dialog.showError(
-            `Ошибка при загрузке провайдеров: ${error.message}`
-          );
-        }
-      };
+        // Инициализация начального состояния
+        providersListSelect.dispatchEvent(new Event("change"));
 
-      window.renderBookmarkSettings = async function (element, type) {
-        try {
-          console.log("Запрашиваем настройки для провайдера:", type);
-          const providers = await window.$main.rclone.getProviders();
-          console.log("Получены провайдеры:", providers);
-          const provider = providers[type];
-          if (!provider) {
-            console.error("Провайдер не найден:", type);
-            return;
-          }
+        // Обработчик отправки формы
+        theForm.addEventListener("submit", function (event) {
+          event.preventDefault();
+          const data = window.getTheFormData(this);
 
-          let html = "";
-          if (provider.Options && provider.Options.length > 0) {
-            provider.Options.forEach(function (option) {
-              if (option.Hide) return;
+          window.$main.rclone
+            .addBookmark(data.type, data.name, data.options)
+            .then(() => dialog.close())
+            .catch(window.errorBox);
+        });
 
-              html += `
-                <div class="row">
-                  <div class="cell-left">
-                    <label>${option.$Label || option.Name}</label>
-                    ${
-                      option.Required
-                        ? '<div class="label-required">обязательное</div>'
-                        : ""
-                    }
-                  </div>
-                  <div class="cell-right">
-                    ${renderOptionInput(option)}
-                    ${
-                      option.Help
-                        ? `<div class="help">${option.Help}</div>`
-                        : ""
-                    }
-                  </div>
+        // Обработчик кнопки отмены
+        document
+          .querySelector('button[type="button"]')
+          .addEventListener("click", () => {
+            dialog.close();
+          });
+      });
+
+      // Добавляем функцию рендеринга настроек закладки
+      window.renderBookmarkSettings = function (element, type) {
+        const provider = window.$main.rclone.getProviders()[type];
+        if (!provider) return;
+
+        let html = "";
+        if (provider.Options && provider.Options.length > 0) {
+          provider.Options.forEach(function (option) {
+            if (option.Hide) return;
+
+            html += `
+              <div class="row">
+                <div class="cell-left">
+                  <label>${option.$Label || option.Name}</label>
+                  ${
+                    option.Required
+                      ? '<span class="label-required">обязательное</span>'
+                      : ""
+                  }
                 </div>
-              `;
-            });
-          }
-          element.innerHTML = html;
-        } catch (error) {
-          console.error("Ошибка при загрузке настроек:", error);
-          window.$main.dialog.showError(
-            `Ошибка при загрузке настроек: ${error.message}`
-          );
+                <div class="cell-right">
+                  ${renderOptionInput(option)}
+                  ${
+                    option.Help
+                      ? `<div class="label-help">${option.Help}</div>`
+                      : ""
+                  }
+                </div>
+              </div>
+            `;
+          });
         }
+        element.innerHTML = html;
       };
 
+      // Функция для рендеринга input элементов
       function renderOptionInput(option) {
         let input = "";
         switch (option.$Type || "text") {
@@ -156,6 +177,18 @@
               </div>
             `;
             break;
+          case "file":
+            input = `
+              <div class="input-group">
+                <input type="text" name="options.${option.Name}" value="${
+              option.Value || ""
+            }" style="width: calc(100% - 40px)">
+                <button type="button" class="file-picker" data-input="options.${
+                  option.Name
+                }">...</button>
+              </div>
+            `;
+            break;
           default:
             input = `<input type="text" name="options.${option.Name}" value="${
               option.Value || ""
@@ -164,92 +197,218 @@
         return input;
       }
 
-      document.addEventListener("DOMContentLoaded", async function () {
-        const theForm = document.getElementById("the-form");
-        const providerSettingsWrapper = document.getElementById(
-          "provider-settings-wrapper"
-        );
-        const bookmarkSettingsWrapper =
-          document.getElementById("bookmark-settings");
+      // Функция для получения данных формы
+      window.getTheFormData = function (form) {
+        const formData = new FormData(form);
+        const data = {
+          type: formData.get("type"),
+          name: formData.get("name"),
+          options: {},
+        };
 
-        const providersListSelect = document.getElementById("providers-list");
-        providersListSelect.addEventListener("change", function () {
-          if (
-            this.selectedOptions.length > 0 &&
-            this.selectedOptions[0].hasOwnProperty("providerObject")
-          ) {
-            let provider = this.selectedOptions[0].providerObject;
-
-            if (provider.Name == "local") {
-              provider.Description = "Локальный диск";
-            }
-
-            document.title = `Создать новую закладку (${provider.Description})`;
-            window.renderBookmarkSettings(bookmarkSettingsWrapper, this.value);
-            providerSettingsWrapper.style.display = null;
-          } else {
-            document.title = "Создать новую закладку";
-            providerSettingsWrapper.style.display = "none";
-            bookmarkSettingsWrapper.innerHTML = "";
+        // Собираем все options.* поля
+        for (let [key, value] of formData.entries()) {
+          if (key.startsWith("options.")) {
+            const optionName = key.replace("options.", "");
+            data.options[optionName] = value;
           }
-          window.resizeToContent();
-        });
+        }
 
-        await window.renderAvailableProvidersSelectOptions(providersListSelect);
-        providersListSelect.dispatchEvent(new Event("change"));
+        return data;
+      };
 
-        theForm.addEventListener("submit", async function (event) {
-          event.preventDefault();
-          const formData = new FormData(this);
-          try {
-            await window.$main.rclone.addBookmark(
-              formData.get("type"),
-              formData.get("name"),
-              Object.fromEntries(formData)
-            );
-            window.close();
-          } catch (error) {
-            alert(error.message);
-          }
-        });
+      // Добавляем обработчики для кнопок выбора файлов/директорий
+      document.addEventListener("click", function (e) {
+        if (e.target.matches(".directory-picker")) {
+          const input = document.querySelector(
+            `input[name="${e.target.dataset.input}"]`
+          );
+          window.$main.dialog.showDirectoryPicker().then((path) => {
+            if (path) input.value = path;
+          });
+        }
+        if (e.target.matches(".file-picker")) {
+          const input = document.querySelector(
+            `input[name="${e.target.dataset.input}"]`
+          );
+          window.$main.dialog.showFilePicker().then((path) => {
+            if (path) input.value = path;
+          });
+        }
       });
     </script>
-  </head>
+    <style>
+      dialog {
+        padding: 20px;
+        border: none;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        width: 500px;
+        background: white;
+      }
 
+      dialog::backdrop {
+        background: rgba(0, 0, 0, 0.3);
+      }
+
+      .form-group {
+        margin-bottom: 15px;
+      }
+
+      .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 500;
+      }
+
+      .dialog-buttons {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 20px;
+        padding-top: 15px;
+        border-top: 1px solid #eee;
+      }
+
+      button {
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+      }
+
+      button[type="submit"] {
+        background-color: #007bff;
+        color: white;
+        border: none;
+      }
+
+      button[type="submit"]:hover {
+        background-color: #0056b3;
+      }
+
+      button.secondary {
+        background-color: #f8f9fa;
+        border: 1px solid #ddd;
+      }
+
+      button.secondary:hover {
+        background-color: #e2e6ea;
+      }
+
+      h2 {
+        margin: 0 0 20px 0;
+        font-size: 1.5em;
+        color: #333;
+      }
+
+      /* Дополнительные стили для элементов из preload */
+      .row {
+        margin-bottom: 15px;
+      }
+
+      .cell-left {
+        margin-bottom: 5px;
+      }
+
+      .cell-right input,
+      .cell-right select,
+      .cell-right textarea {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+      }
+
+      .label-required {
+        color: #dc3545;
+        font-size: 0.8em;
+        margin-left: 4px;
+      }
+
+      .label-help {
+        font-size: 0.9em;
+        color: #666;
+        margin-top: 4px;
+      }
+
+      .tabs {
+        margin-top: 15px;
+      }
+
+      .tab-buttons {
+        display: flex;
+        border-bottom: 1px solid #ddd;
+        margin-bottom: 15px;
+      }
+
+      .tab-button {
+        padding: 8px 16px;
+        cursor: pointer;
+        border: 1px solid transparent;
+        border-bottom: none;
+        margin-bottom: -1px;
+      }
+
+      .tab-button.active {
+        background: #fff;
+        border-color: #ddd;
+        border-bottom-color: #fff;
+      }
+
+      .tab-content {
+        padding: 15px 0;
+      }
+
+      .input-group {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .input-group button {
+        flex-shrink: 0;
+        width: 32px;
+        height: 32px;
+        padding: 4px;
+        line-height: 1;
+      }
+    </style>
+  </head>
   <body>
-    <h1>Добавить закладку</h1>
-    <form id="the-form">
-      <div class="row">
-        <div class="cell-left">Тип подключения</div>
-        <div class="cell-right">
+    <dialog class="bookmark-dialog">
+      <form id="the-form" method="dialog">
+        <h2>Добавить закладку</h2>
+
+        <div class="form-group">
+          <label>Тип подключения</label>
           <select name="type" id="providers-list" style="width: 100%"></select>
         </div>
-      </div>
 
-      <div id="provider-settings-wrapper" style="display: none">
-        <div class="row">
-          <div class="cell-left">
-            <label>Имя</label>
-            <div class="label-required">обязательное</div>
-          </div>
-          <div class="cell-right">
+        <div id="provider-settings-wrapper" style="display: none">
+          <div class="form-group">
+            <label for="bookmark-name">
+              Название
+              <span class="label-required">обязательное</span>
+            </label>
             <input
               type="text"
               name="name"
-              value=""
+              class="form-control"
               maxlength="20"
-              size="20"
-              style="width: 100%"
+              required
             />
           </div>
-        </div>
 
-        <div id="bookmark-settings"></div>
+          <div id="bookmark-settings"></div>
 
-        <div class="row right buttons">
-          <button type="submit">Добавить</button>
+          <div class="dialog-buttons">
+            <button type="button" class="secondary">Отмена</button>
+            <button type="submit">Сохранить</button>
+          </div>
         </div>
-      </div>
-    </form>
+      </form>
+    </dialog>
   </body>
 </html>
