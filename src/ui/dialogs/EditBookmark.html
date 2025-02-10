@@ -1,70 +1,67 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
-
   <head>
-
+    <title>Редактировать закладку</title>
+    <meta charset="UTF-8" />
     <script>
-      $main.loadStyles()
-      document.title = `Редактировать ${$main.getProps().$name}`
+      window.$main.loadStyles();
+      document.title = `Редактировать ${$main.getProps().$name}`;
 
-      document.addEventListener('DOMContentLoaded', function () {
+      document.addEventListener("DOMContentLoaded", function () {
+        const props = window.$main.getProps();
+        document.getElementById("bookmarkName").textContent = props.$name;
 
-        let opts = window.$main.getProps();
-        renderBookmarkSettings(
-          document.getElementById('bookmark-settings'),
-          window.$main.getProps().type,
-          {
-            options: opts,
+        const form = document.getElementById("editForm");
+        form.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const formData = new FormData(form);
+          try {
+            await window.$main.rclone.updateBookmark(
+              props.$name,
+              Object.fromEntries(formData)
+            );
+            window.close();
+          } catch (error) {
+            alert(error.message);
           }
-        )
+        });
 
-        document.getElementById('the-form')
-          .addEventListener('submit', function (event) {
-            event.preventDefault()
-            let data = getTheFormData(this)
-            $main.rclone
-              .updateBookmark($main.getProps().$name, data.options)
-              .then(window.close)
-              .catch(errorBox)
-          })
-
-        document.getElementById('delete-bookmark-button')
-          .addEventListener('click', function (event) {
-            event.preventDefault()
-            if (confirm('Вы уверены, что хотите удалить закладку?')) {
-              $main.rclone.deleteBookmark($main.getProps().$name)
+        document
+          .getElementById("delete-bookmark-button")
+          .addEventListener("click", function (event) {
+            event.preventDefault();
+            if (confirm("Вы уверены, что хотите удалить закладку?")) {
+              $main.rclone
+                .deleteBookmark($main.getProps().$name)
                 .then(window.close)
-                .catch(window.errorBox)
+                .catch(window.errorBox);
             }
-          })
-
-      })
+          });
+      });
     </script>
-
   </head>
 
   <body>
-
-    <form id="the-form">
-
+    <h2>Редактировать закладку: <span id="bookmarkName"></span></h2>
+    <form id="editForm">
       <div class="row">
-        <div class="cell-left">
-          Тип
-        </div>
+        <div class="cell-left">Тип</div>
         <div class="cell-right">
           <var>
-            <script>document.write($main.getProps().type)</script>
+            <script>
+              document.write($main.getProps().type);
+            </script>
           </var>
         </div>
       </div>
 
       <div class="row">
-        <div class="cell-left">
-          Название
-        </div>
+        <div class="cell-left">Название</div>
         <div class="cell-right">
           <var>
-            <script>document.write($main.getProps().$name)</script>
+            <script>
+              document.write($main.getProps().$name);
+            </script>
           </var>
         </div>
       </div>
@@ -72,18 +69,10 @@
       <div id="bookmark-settings"></div>
 
       <div class="row right buttons">
+        <button id="delete-bookmark-button">Удалить</button>
 
-        <button id="delete-bookmark-button">
-          Удалить
-        </button>
-
-        <button type="submit">
-          Сохранить
-        </button>
+        <button type="submit">Сохранить</button>
       </div>
-
     </form>
-
   </body>
-
 </html>

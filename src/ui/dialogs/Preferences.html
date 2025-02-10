@@ -1,109 +1,115 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
-
   <head>
     <title>Настройки</title>
+    <meta charset="UTF-8" />
     <script defer>
-      $main.loadStyles()
+      window.$main.loadStyles();
 
-      document.addEventListener('DOMContentLoaded', function () {
-        let tabs = createTabsElement()
-        document.getElementById('preferences').appendChild(tabs)
+      document.addEventListener("DOMContentLoaded", function () {
+        let tabs = window.createTabsElement();
+        document.getElementById("preferences").appendChild(tabs);
 
-        tabs.addTab('Основные', createOptionsFields([
-          {
-            $Label: 'Запуск при старте',
-            $Type: 'boolean',
-            Name: 'auto_start',
-            Help: 'Автоматический запуск приложения при входе в систему',
-            Provider: '',
-            Default: false,
-            Value: $main.isAutostart(),
-            ShortOpt: '',
-            Hide: 0,
-            Required: false,
-            IsPassword: false,
-            NoPrefix: false,
-            Advanced: false
-          },
-          {
-            $Label: 'Показывать тип закладок',
-            $Type: 'boolean',
-            Name: 'tray_menu_show_type',
-            Help: '',
-            Provider: '',
-            Default: true,
-            Value: $main.settings.get('tray_menu_show_type'),
-            ShortOpt: '',
-            Hide: 0,
-            Required: false,
-            IsPassword: false,
-            NoPrefix: false,
-            Advanced: false
-          }
-        ]))
+        tabs.addTab(
+          "Основные",
+          createOptionsFields([
+            {
+              $Label: "Запуск при старте",
+              $Type: "boolean",
+              Name: "auto_start",
+              Help: "Автоматический запуск приложения при входе в систему",
+              Provider: "",
+              Default: false,
+              Value: $main.isAutostart(),
+              ShortOpt: "",
+              Hide: 0,
+              Required: false,
+              IsPassword: false,
+              NoPrefix: false,
+              Advanced: false,
+            },
+            {
+              $Label: "Показывать тип закладок",
+              $Type: "boolean",
+              Name: "tray_menu_show_type",
+              Help: "",
+              Provider: "",
+              Default: true,
+              Value: $main.settings.get("tray_menu_show_type"),
+              ShortOpt: "",
+              Hide: 0,
+              Required: false,
+              IsPassword: false,
+              NoPrefix: false,
+              Advanced: false,
+            },
+          ])
+        );
 
-        tabs.addTab('Rclone', createOptionsFields([
-          {
-            Name: 'rclone_config',
-            $Label: 'Приложение',
-            $Type: 'file',
-            $RequireRestart: true,
-            Help: 'Для изменения этого параметра требуется перезагрузка компьютера.',
-            Provider: '',
-            Default: $main.rclone.getConfigFile(),
-            Value: '',
-            ShortOpt: '',
-            Hide: 0,
-            Required: false,
-            IsPassword: false,
-            NoPrefix: false,
-            Advanced: false
-          },
-          {
-            Name: 'rclone_use_bundled',
-            $Label: 'Использовать Rclone в комплекте',
-            $Type: 'boolean',
-            $RequireRestart: true,
-            Help: 'Использовать двоичный файл, который поставляется в комплекте с приложением, в противном случае будет использоваться установленная общесистемная версия (если она не найдена, то вы получите сообщение об ошибке).',
-            Provider: '',
-            Default: true,
-            Value: $main.settings.get('rclone_use_bundled'),
-            ShortOpt: '',
-            Hide: 0,
-            Required: false,
-            IsPassword: false,
-            NoPrefix: false,
-            Advanced: false
-          },
-          {
-            Name: 'rclone_cache_files',
-            $Label: 'Время кэширования файла',
-            $Type: 'numeric',
-            Help: 'В секундах',
-            Value: $main.settings.get('rclone_cache_files')
-          },
-          {
-            Name: 'rclone_cache_directories',
-            $Label: 'Время кэширования каталога',
-            $Type: 'numeric',
-            Help: 'В секундах',
-            Value: $main.settings.get('rclone_cache_directories')
-          },
-          {
-            Name: 'custom_args',
-            $Label: 'Пользовательские аргументы настройки Rclone.',
-            $Type: 'text',
-            Help: 'Аргументы команды клонирования, разделенные пробелом или новой строкой, добавляются ко всем командам.\nПодробнее читайте на https://rclone.org/docs/',
-            Value: $main.settings.get('custom_args'),
-            ShortOpt: '',
-            Hide: 0,
-            Required: false,
-            IsPassword: false,
-            NoPrefix: false,
-            Advanced: false
-          }
-        ]))
+        tabs.addTab(
+          "Rclone",
+          createOptionsFields([
+            {
+              Name: "rclone_config",
+              $Label: "Приложение",
+              $Type: "file",
+              $RequireRestart: true,
+              Help: "Для изменения этого параметра требуется перезагрузка компьютера.",
+              Provider: "",
+              Default: $main.rclone.getConfigFile(),
+              Value: "",
+              ShortOpt: "",
+              Hide: 0,
+              Required: false,
+              IsPassword: false,
+              NoPrefix: false,
+              Advanced: false,
+            },
+            {
+              Name: "rclone_use_bundled",
+              $Label: "Использовать Rclone в комплекте",
+              $Type: "boolean",
+              $RequireRestart: true,
+              Help: "Использовать двоичный файл, который поставляется в комплекте с приложением, в противном случае будет использоваться установленная общесистемная версия (если она не найдена, то вы получите сообщение об ошибке).",
+              Provider: "",
+              Default: true,
+              Value: $main.settings.get("rclone_use_bundled"),
+              ShortOpt: "",
+              Hide: 0,
+              Required: false,
+              IsPassword: false,
+              NoPrefix: false,
+              Advanced: false,
+            },
+            {
+              Name: "rclone_cache_files",
+              $Label: "Время кэширования файла",
+              $Type: "numeric",
+              Help: "В секундах",
+              Value: $main.settings.get("rclone_cache_files"),
+            },
+            {
+              Name: "rclone_cache_directories",
+              $Label: "Время кэширования каталога",
+              $Type: "numeric",
+              Help: "В секундах",
+              Value: $main.settings.get("rclone_cache_directories"),
+            },
+            {
+              Name: "custom_args",
+              $Label: "Пользовательские аргументы настройки Rclone.",
+              $Type: "text",
+              Help: "Аргументы команды клонирования, разделенные пробелом или новой строкой, добавляются ко всем командам.\nПодробнее читайте на https://rclone.org/docs/",
+              Value: $main.settings.get("custom_args"),
+              ShortOpt: "",
+              Hide: 0,
+              Required: false,
+              IsPassword: false,
+              NoPrefix: false,
+              Advanced: false,
+            },
+          ])
+        );
 
         // tabs.addTab('NCDU', createOptionsFields([
         //   {
@@ -114,56 +120,59 @@
         //   }
         // ]))
 
-        tabs.addTab('Синхронизация', createOptionsFields([
-          {
-            $Label: 'Включить',
-            $Type: 'boolean',
-            Name: 'rclone_sync_enable',
-            Value: $main.settings.get('rclone_sync_enable')
-          },
-          {
-            $Label: 'Автоматическая загрузка',
-            $Type: 'select',
-            Name: 'rclone_sync_autoupload_delay',
-            Examples: [
-              {
-                Label: '15 сек',
-                Value: 15
-              },
-              {
-                Label: '30 сек',
-                Value: 30
-              },
-              {
-                Label: '1 мин',
-                Value: 60
-              },
-              {
-                Label: '5 мин',
-                Value: 300
-              },
-              {
-                Label: '10 мин',
-                Value: 600
-              },
-              {
-                Label: '15 мин',
-                Value: 1200
-              },
-              {
-                Label: '30 мин',
-                Value: 1800
-              },
-              {
-                Label: '1 час',
-                Value: 3600
-              }
-            ],
-            Value: Number($main.settings.get('rclone_sync_autoupload_delay')),
-            $RequireRestart: true,
-            Help: 'Для применения изменений требуется перезагрузка'
-          }
-        ]))
+        tabs.addTab(
+          "Синхронизация",
+          createOptionsFields([
+            {
+              $Label: "Включить",
+              $Type: "boolean",
+              Name: "rclone_sync_enable",
+              Value: $main.settings.get("rclone_sync_enable"),
+            },
+            {
+              $Label: "Автоматическая загрузка",
+              $Type: "select",
+              Name: "rclone_sync_autoupload_delay",
+              Examples: [
+                {
+                  Label: "15 сек",
+                  Value: 15,
+                },
+                {
+                  Label: "30 сек",
+                  Value: 30,
+                },
+                {
+                  Label: "1 мин",
+                  Value: 60,
+                },
+                {
+                  Label: "5 мин",
+                  Value: 300,
+                },
+                {
+                  Label: "10 мин",
+                  Value: 600,
+                },
+                {
+                  Label: "15 мин",
+                  Value: 1200,
+                },
+                {
+                  Label: "30 мин",
+                  Value: 1800,
+                },
+                {
+                  Label: "1 час",
+                  Value: 3600,
+                },
+              ],
+              Value: Number($main.settings.get("rclone_sync_autoupload_delay")),
+              $RequireRestart: true,
+              Help: "Для применения изменений требуется перезагрузка",
+            },
+          ])
+        );
 
         // tabs.addTab('Обслуживание', createOptionsFields([
         //   {
@@ -204,23 +213,22 @@
         //   }
         // ]))
 
-        let theForm = document.getElementById('the-form')
-        theForm.addEventListener('submit', function (event) {
+        let theForm = document.getElementById("the-form");
+        theForm.addEventListener("submit", function (event) {
           event.preventDefault();
-          let data = getTheFormData(this)
+          let data = getTheFormData(this);
 
-          let oldAutoStart = $main.isAutostart()
+          let oldAutoStart = $main.isAutostart();
           if (oldAutoStart !== !!(data.auto_start || false)) {
-            $main.setAutostart(data.auto_start || false)
+            $main.setAutostart(data.auto_start || false);
           }
-          delete data['auto_start']
+          delete data["auto_start"];
 
-          $main.settings.merge(data)
-          $main.refreshTray()
-          window.checkForRequiredRestart()
-          window.close()
-        })
-
+          $main.settings.merge(data);
+          $main.refreshTray();
+          window.checkForRequiredRestart();
+          window.close();
+        });
       });
     </script>
   </head>
@@ -229,11 +237,8 @@
     <form id="the-form">
       <div id="preferences"></div>
       <div class="row right buttons">
-        <button type="submit">
-          Сохранить
-        </button>
+        <button type="submit">Сохранить</button>
       </div>
     </form>
   </body>
-
 </html>

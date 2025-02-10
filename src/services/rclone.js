@@ -10,8 +10,10 @@ const { app, shell } = require('electron')
 const isDev = require('electron-is-dev')
 const settings = require('./settings')
 const dialogs = require('./dialogs')
-const errorHandler = require('./error-handler')
+const ErrorHandler = require('./error-handler')
 const statusHandler = require('./status-handler')
+const logger = require('./logger')
+const config = require('./config')
 
 let syncinfo
 let sync_change
@@ -179,7 +181,7 @@ const doCommand = function (command) {
     exec(command.join(' '), {maxBuffer: 1024 * 2048} ,function (err, stdout, stderr) {
       if (err) {
         console.error('Rclone', err)
-        errorHandler.logToFile(err)
+        ErrorHandler.logToFile(err)
         reject(Error('Rclone command error.'))
       } else {
         resolve(stdout)
@@ -263,7 +265,7 @@ class BookmarkProcessManager {
     }
     if (this.exists()) {
       console.error(`Trying to create new ${this.processName} over existing for ${this.bookmarkName}.`)
-      errorHandler.logToFile(`Trying to create new ${this.processName} over existing for ${this.bookmarkName}.`)
+      ErrorHandler.logToFile(`Trying to create new ${this.processName} over existing for ${this.bookmarkName}.`)
       // throw Error('Такой процесс уже существует.')
     }
     let id = this.id
@@ -421,13 +423,13 @@ class BookmarkProcessManager {
     if (/Bisync successful/i.test(lineInfo.message) && sync_change) {
       dialogs.notification(syncinfo)
       statusHandler.removeBookmarkWithFailedStatus(this.bookmarkName);
-      errorHandler.resetNotificationFlag(this.bookmarkName);
+      ErrorHandler.resetNotificationFlag(this.bookmarkName);
     }
 
     // Catch errors in the output, so need to kill the process and refresh
     if (['ERROR'].indexOf(lineInfo.level) !== -1) {
       statusHandler.addBookmarkWithFailedStatus(this.bookmarkName, lineInfo);
-      errorHandler.handleProcessOutput(this.bookmarkName, lineInfo);
+      ErrorHandler.handleProcessOutput(this.bookmarkName, lineInfo);
 
       if (/(Statfs failed|IO error: couldn't list files:)/i.test(lineInfo.message)) {
         dialogs.notification('Ошибка! Проверьте параметры соединения.')
@@ -1153,7 +1155,7 @@ const updateBookmarkFields = function (bookmarkName, providerObject, values, old
     }))
   } catch (err) {
     console.error(err)
-    errorHandler.logToFile(err)
+    ErrorHandler.logToFile(err)
     throw Error('Не удается обновить поля закладок.')
   }
   console.log('Rclone', 'Updated bookmark', bookmarkName)
@@ -1196,7 +1198,7 @@ const addBookmark = function (type, bookmarkName, values) {
         // Done.
       } catch (err) {
         console.error('Rclone', 'Возврат закладки из-за проблемы', bookmarkName, err)
-        errorHandler.logToFile(err)
+        ErrorHandler.logToFile(err)
         doCommand(['config', 'delete', bookmarkName])
           .then(function () {
             reject(Error('Не удается записать параметры закладок в конфигурацию.'))
@@ -1205,7 +1207,7 @@ const addBookmark = function (type, bookmarkName, values) {
       }
     } catch (err) {
       console.error(err)
-      errorHandler.logToFile(err)
+      ErrorHandler.logToFile(err)
       reject(Error('Не удается создать новую закладку'))
     }
   })
@@ -1423,7 +1425,7 @@ const unmount = function (bookmark) {
     proc.kill()
   }
   statusHandler.removeBookmarkWithFailedStatus(bookmark.$name);
-  errorHandler.resetNotificationFlag(bookmark.$name);
+  ErrorHandler.resetNotificationFlag(bookmark.$name);
 }
 
 /**
@@ -1436,7 +1438,7 @@ const openMountPoint = function (bookmark) {
     shell.openExternal(`file://${mountpoint}`)
   } else {
     console.error('Trying to open non-mounted drive.')
-    errorHandler.logToFile('Trying to open non-mounted drive.')
+    ErrorHandler.logToFile('Trying to open non-mounted drive.')
   }
 }
 
@@ -1703,7 +1705,7 @@ const init = function () {
   } catch (err) {
     // This could happen if something wrong with the system Path variable or installed "unbundled"
     // package, and there is no Rclone installed on current system.
-    errorHandler.logToFile(err)
+    ErrorHandler.logToFile(err)
     dialogs.missingRclone()
 
     // If fails again, then there is really something wrong and will fail in to the uncaughtException handler.

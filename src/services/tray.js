@@ -1,7 +1,7 @@
 'use strict'
 
 const path = require('path')
-const { Tray, Menu, shell } = require('electron')
+const { app, Tray, Menu, shell } = require('electron')
 const isDev = require('electron-is-dev')
 const settings = require('./settings')
 const rclone = require('./rclone')
@@ -386,16 +386,17 @@ const init = function () {
     return
   }
 
+  // Исправляем пути к иконкам
   if (process.platform === 'win32') {
-    icons.default = path.join(__dirname, 'ui', 'icons', 'icon.ico')
-    icons.connected = path.join(__dirname, 'ui', 'icons', 'icon-connected.ico')
+    icons.default = path.join(__dirname, '..', 'ui', 'icons', 'icon.ico')
+    icons.connected = path.join(__dirname, '..', 'ui', 'icons', 'icon-connected.ico')
   } else if (process.platform === 'linux') {
     // Using bigger images fixes the problem with blurry icon in some DE.
-    icons.default = path.join(__dirname, 'ui', 'icons', 'icon.png')
-    icons.connected = path.join(__dirname, 'ui', 'icons', 'icon-connected.png')
+    icons.default = path.join(__dirname, '..', 'ui', 'icons', 'icon.png')
+    icons.connected = path.join(__dirname, '..', 'ui', 'icons', 'icon-connected.png')
   } else {
-    icons.default = path.join(__dirname, 'ui', 'icons', 'iconTemplate.png')
-    icons.connected = path.join(__dirname, 'ui', 'icons', 'icon-connectedTemplate.png')
+    icons.default = path.join(__dirname, '..', 'ui', 'icons', 'iconTemplate.png')
+    icons.connected = path.join(__dirname, '..', 'ui', 'icons', 'icon-connectedTemplate.png')
   }
 
   // Add system tray icon.
