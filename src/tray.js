@@ -4,7 +4,7 @@ const path = require('path')
 const { Tray, Menu, shell } = require('electron')
 const isDev = require('electron-is-dev')
 const settings = require('./settings')
-const rclone = require('./rclone')
+const rclone = require('./services/rclone')
 const dialogs = require('./dialogs')
 const statusHandler = require('./status-handler')
 
@@ -43,12 +43,17 @@ const fileExplorerLabel = process.platform === 'darwin'
  * @param ...args
  */
 const bookmarkActionRouter = function (action, ...args) {
+  console.log('Tray: Action triggered:', { action, args, bookmark: this })
   if (action === 'mount') {
     rclone.mount(this)
   } else if (action === 'unmount') {
     rclone.unmount(this)
   } else if (action === 'open-mounted') {
-    rclone.openMountPoint(this)
+    console.log('Tray: Opening mount point for bookmark:', this.$name)
+    rclone.openMountPoint(this.$name).catch(err => {
+      console.error('Failed to open mount point:', err)
+      dialogs.notification(`Не удалось открыть папку: ${err.message}`)
+    })
   } else if (action === 'download') {
     rclone.download(this)
   } else if (action === 'stop-downloading') {

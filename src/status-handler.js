@@ -39,6 +39,9 @@ const hasBookmarkWithFailedStatus = function (bookmark) {
   return bookmarksWithFailedStatus.has(bookmark);
 };
 
+const { app } = require('electron')
+const rclone = require('./services/rclone')
+
 module.exports = {
   addBookmarkWithFailedStatus,
   removeBookmarkWithFailedStatus,

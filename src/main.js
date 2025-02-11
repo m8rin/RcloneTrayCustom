@@ -4,7 +4,7 @@ const path = require('path')
 const { app } = require('electron')
 const isDev = require('electron-is-dev')
 const dialogs = require('./dialogs')
-const rclone = require('./rclone')
+const rclone = require('./services/rclone')
 const tray = require('./tray')
 
 app.setName('CSync');
@@ -12,9 +12,24 @@ app.setAppUserModelId('CSync');
 
 // Error handler
 process.on('uncaughtException', function (error) {
+  console.error('Uncaught Exception:', {
+    name: error.name,
+    message: error.message,
+    stack: error.stack
+  })
   if (dialogs.uncaughtException(error)) {
     app.exit()
   }
+})
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Promise Rejection:', {
+    reason: reason instanceof Error ? {
+      name: reason.name,
+      message: reason.message,
+      stack: reason.stack
+    } : reason
+  })
 })
 
 // Check arch.
