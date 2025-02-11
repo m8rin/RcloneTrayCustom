@@ -4,6 +4,7 @@
   <head>
     <script defer>
       $main.loadStyles()
+      document.title = 'Добавить закладку'
 
       /**
        * Add available providers as options to select HTML element
@@ -40,42 +41,60 @@
       }
 
       document.addEventListener('DOMContentLoaded', function () {
+        function showError(error) {
+          console.error('Error creating bookmark:', error)
+          const message = error.message || 'Неизвестная ошибка при создании закладки'
+          window.errorBox(message)
+        }
 
-        const theForm = document.getElementById('the-form')
-        const providerSettingsWrapper = document.getElementById('provider-settings-wrapper')
-        const bookmarkSettingsWrapper = document.getElementById('bookmark-settings')
+        // Загружаем список провайдеров
+        let providersList = document.getElementById('providers-list')
+        let providers = $main.rclone.getProviders()
+        Object.keys(providers).forEach(function (key) {
+          let option = document.createElement('option')
+          option.value = key
+          option.textContent = key
+          providersList.appendChild(option)
+        })
 
-        const providersListSelect = document.getElementById('providers-list');
-        providersListSelect.addEventListener('change', function () {
-          if (this.selectedOptions.length > 0 && this.selectedOptions[0].hasOwnProperty('providerObject')) {
-            let provider = this.selectedOptions[0].providerObject
+        // Обработчик формы
+        document.getElementById('the-form')
+          .addEventListener('submit', async function (event) {
+            event.preventDefault()
+            let data = getTheFormData(this)
+            console.log('Form data:', data)
 
-            if (provider.Name == 'local') {
-              provider.Description = 'Локальный диск'
+            // Получаем значения формы
+            const formValues = {
+              ...data.options,
+              _rclonetray_mount_drive: document.querySelector('select[name="_rclonetray_mount_drive"]').value
             }
+            console.log('Submitting values:', formValues)
 
-            document.title = `Создать новую закладку (${provider.Description})`
-            renderBookmarkSettings(bookmarkSettingsWrapper, this.value)
-            providerSettingsWrapper.style.display = null
-          } else {
-            document.title = 'Создать новую закладку'
-            providerSettingsWrapper.style.display = 'none'
-            bookmarkSettingsWrapper.innerHTML = ''
+            try {
+              await $main.rclone.addBookmark(data.type, data.name, formValues)
+              window.close()
+            } catch (error) {
+              showError(error)
+            }
+          })
+
+        // Обработчик изменения типа провайдера
+        providersList.addEventListener('change', function () {
+          let provider = providers[this.value]
+          if (provider) {
+            renderBookmarkSettings(
+              document.getElementById('bookmark-settings'),
+              this.value,
+              { options: {} }
+            )
           }
-          resizeToContent()
         })
-        providersListSelect.dispatchEvent(new Event('change'))
-        renderAvailableProvidersSelectOptions(providersListSelect)
 
-        theForm.addEventListener('submit', function (event) {
-          event.preventDefault();
-
-          let data = getTheFormData(this)
-
-          $main.rclone.addBookmark(data.type, data.name, data.options)
-            .then(window.close)
-            .catch(window.errorBox)
-        })
+        // Инициализация формы с первым провайдером
+        if (providersList.options.length > 0) {
+          providersList.dispatchEvent(new Event('change'))
+        }
       });
     </script>
   </head>
@@ -108,7 +127,45 @@
             <input type="text" name="name" value="" maxlength="20" size="20" style="width:12em" />
           </div>
         </div>
-
+        
+        <div class="row">
+          <div class="cell-left">
+            <label>
+              Буква диска
+            </label>
+            <div class="label-optional">
+              необязательное
+            </div>
+          </div>
+          <div class="cell-right">
+            <select name="_rclonetray_mount_drive" style="width:12em">
+              <option value="">Автоматически</option>
+              <option value="E">E:</option>
+              <option value="F">F:</option>
+              <option value="G">G:</option>
+              <option value="H">H:</option>
+              <option value="I">I:</option>
+              <option value="J">J:</option>
+              <option value="K">K:</option>
+              <option value="L">L:</option>
+              <option value="M">M:</option>
+              <option value="N">N:</option>
+              <option value="O">O:</option>
+              <option value="P">P:</option>
+              <option value="Q">Q:</option>
+              <option value="R">R:</option>
+              <option value="S">S:</option>
+              <option value="T">T:</option>
+              <option value="U">U:</option>
+              <option value="V">V:</option>
+              <option value="W">W:</option>
+              <option value="X">X:</option>
+              <option value="Y">Y:</option>
+              <option value="Z">Z:</option>
+            </select>
+          </div>
+        </div>
+        
         <div id="bookmark-settings"></div>
 
         <div class="row right buttons">

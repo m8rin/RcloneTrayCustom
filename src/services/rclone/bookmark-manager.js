@@ -5,6 +5,7 @@ const ini = require('ini')
 const chokidar = require('chokidar')
 const { PROVIDERS } = require('../../config/providers')
 const cacheManager = require('./cache-manager')
+const path = require('path')
 
 class BookmarkManager {
   constructor(commandExecutor) {
@@ -106,10 +107,29 @@ class BookmarkManager {
     }
   }
 
-  async updateBookmark(bookmark, values) {
-    const bookmarkData = this.getBookmark(bookmark)
-    await this.updateBookmarkFields(bookmarkData.$name, bookmarkData.type, values, bookmarkData)
-    this.updateBookmarksCache()
+  updateBookmark(name, values) {
+    console.log('Updating bookmark:', { name, values })
+    const bookmark = this.getBookmark(name)
+    if (!bookmark) {
+      throw new Error(`Bookmark ${name} not found`)
+    }
+
+    // Сохраняем существующие специальные поля
+    const specialFields = {
+      $name: name,
+      type: bookmark.type,
+      _rclonetray_custom_args: bookmark._rclonetray_custom_args || '',
+      _rclonetray_local_path_map: bookmark._rclonetray_local_path_map || '',
+      _rclonetray_mount_drive: values._rclonetray_mount_drive || bookmark._rclonetray_mount_drive || ''
+    }
+
+    // Обновляем закладку, сохраняя специальные поля
+    Object.assign(bookmark, values, specialFields)
+
+    console.log('Updated bookmark:', bookmark)
+    this.saveBookmarks()
+    this.notifyUpdateCallbacks()
+    return bookmark
   }
 
   async deleteBookmark(bookmark) {
@@ -118,35 +138,25 @@ class BookmarkManager {
     this.updateBookmarksCache()
   }
 
-  async updateBookmarkFields(name, type, values, oldValues = null) {
-    const valuesPlain = {}
-
-    // Обработка значений
-    Object.entries(values).forEach(([key, value]) => {
-      if (typeof value === 'boolean') {
-        valuesPlain[key] = value ? 'true' : 'false'
-      } else {
-        valuesPlain[key] = value
-      }
-    })
-
-    try {
-      const configContent = fs.readFileSync(this.commandExecutor.configFile).toString()
-      const configIni = ini.decode(configContent)
-      
-      configIni[name] = {
-        ...configIni[name],
-        ...valuesPlain
-      }
-
-      fs.writeFileSync(
-        this.commandExecutor.configFile, 
-        ini.encode(configIni, { whitespace: true })
-      )
-    } catch (err) {
-      console.error('Bookmark update error:', err)
-      throw new Error('Не удается обновить поля закладок.')
+  updateBookmarkFields(name, fields) {
+    if (!name || !fields) {
+      console.error('Invalid arguments:', { name, fields })
+      return
     }
+    
+    const configPath = path.join(
+      cacheManager.getConfigPath(),
+      `bookmark.${name}.json`
+    )
+    
+    if (!fs.existsSync(configPath)) {
+      console.error('Config file not found:', configPath)
+      return
+    }
+
+    const config = JSON.parse(fs.readFileSync(configPath))
+    Object.assign(config, fields)
+    fs.writeFileSync(configPath, JSON.stringify(config, null, 2))
   }
 
   onUpdate(callback) {

@@ -22,9 +22,20 @@
           .addEventListener('submit', function (event) {
             event.preventDefault()
             let data = getTheFormData(this)
+            // Получаем все значения из формы
+            const formValues = {
+              ...data.options,
+              type: $main.getProps().type,
+              _rclonetray_mount_drive: document.querySelector('select[name="_rclonetray_mount_drive"]').value
+            }
+            console.log('Saving bookmark with values:', formValues)
+            
             $main.rclone
-              .updateBookmark($main.getProps().$name, data.options)
-              .then(window.close)
+              .updateBookmark($main.getProps().$name, formValues)
+              .then(() => {
+                dialogs.notification('Закладка успешно обновлена')
+                window.close()
+              })
               .catch(errorBox)
           })
 
@@ -37,6 +48,20 @@
                 .catch(window.errorBox)
             }
           })
+
+        // Устанавливаем начальные значения при загрузке
+        const nameInput = document.querySelector('input[name="name"]')
+        if (nameInput) {
+          nameInput.value = $main.getProps().$name
+        }
+
+        // Устанавливаем букву диска
+        const mountDriveSelect = document.querySelector('select[name="_rclonetray_mount_drive"]')
+        if (mountDriveSelect) {
+          const savedDrive = $main.getProps()._rclonetray_mount_drive
+          console.log('Saved drive letter:', savedDrive)
+          mountDriveSelect.value = savedDrive || ''
+        }
 
       })
     </script>
@@ -63,9 +88,45 @@
           Название
         </div>
         <div class="cell-right">
-          <var>
-            <script>document.write($main.getProps().$name)</script>
-          </var>
+          <input type="text" name="name" value="" maxlength="20" size="20" style="width:12em" />
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="cell-left">
+          <label>
+            Буква диска
+          </label>
+          <div class="label-optional">
+            необязательное
+          </div>
+        </div>
+        <div class="cell-right">
+          <select name="_rclonetray_mount_drive" style="width:12em">
+            <option value="">Автоматически</option>
+            <option value="E">E:</option>
+            <option value="F">F:</option>
+            <option value="G">G:</option>
+            <option value="H">H:</option>
+            <option value="I">I:</option>
+            <option value="J">J:</option>
+            <option value="K">K:</option>
+            <option value="L">L:</option>
+            <option value="M">M:</option>
+            <option value="N">N:</option>
+            <option value="O">O:</option>
+            <option value="P">P:</option>
+            <option value="Q">Q:</option>
+            <option value="R">R:</option>
+            <option value="S">S:</option>
+            <option value="T">T:</option>
+            <option value="U">U:</option>
+            <option value="V">V:</option>
+            <option value="W">W:</option>
+            <option value="X">X:</option>
+            <option value="Y">Y:</option>
+            <option value="Z">Z:</option>
+          </select>
         </div>
       </div>
 

@@ -31,12 +31,6 @@ class MountManager {
     const mountpoint = await this.getMountPoint(bookmark)
     this.mountPoints.set(bookmark.$name, mountpoint)
     
-    // Проверяем, не занята ли буква
-    const drives = await this.getAvailableDrives()
-    if (drives.includes(mountpoint)) {
-      throw new Error(`Буква диска ${mountpoint.charAt(0)} уже используется. Измените букву в настройках закладки.`)
-    }
-
     if (!this.validateMountPoint(mountpoint)) {
       console.error('MountManager: Invalid mountpoint:', mountpoint)
       throw new Error(`Mount point ${mountpoint} is not available`)
@@ -84,13 +78,26 @@ class MountManager {
   }
 
   async getWin32MountPoint(bookmark) {
+    const drives = await this.getAvailableDrives()
+    console.log('Available drives:', drives)
+    
+    // Если указана предпочтительная буква
     if (bookmark._rclonetray_mount_drive) {
-      return bookmark._rclonetray_mount_drive + ':'
+      const preferredDrive = bookmark._rclonetray_mount_drive + ':'
+      console.log('Preferred drive:', preferredDrive)
+      
+      // Проверяем, не занята ли она
+      if (!drives.includes(preferredDrive)) {
+        return preferredDrive
+      } else {
+        throw new Error(`Буква диска ${bookmark._rclonetray_mount_drive} уже используется. Выберите другую букву.`)
+      }
     }
     
-    // Если буква не указана, найдем первую свободную
-    const drives = await this.getAvailableDrives()
+    // Если буква не указана или предпочтительная занята, найдем первую свободную
     const availableLetters = this.getAvailableLetters(drives)
+    console.log('Available letters:', availableLetters)
+    
     if (availableLetters.length === 0) {
       throw new Error('Нет доступных букв для монтирования')
     }
