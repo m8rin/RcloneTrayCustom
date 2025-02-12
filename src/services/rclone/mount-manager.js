@@ -15,6 +15,7 @@ class MountManager {
     this.processManager = new ProcessManager()
     this.updateCallbacks = []
     this.mountPoints = new Map() // Хранит текущие точки монтирования
+    this.settings = require('../settings')
   }
 
   onUpdate(callback) {
@@ -23,6 +24,37 @@ class MountManager {
 
   notifyUpdateCallbacks() {
     this.updateCallbacks.forEach(callback => callback())
+  }
+
+  async initAutoMount(bookmarkManager) {
+    if (!this.settings.get('rclone_automount_enabled')) {
+      console.log('AutoMount: disabled by settings')
+      return
+    }
+
+    try {
+      // Ждем загрузки закладок
+      await bookmarkManager.updateBookmarksCache()
+      
+      const mountedBookmarks = this.settings.get('mounted_bookmarks', {})
+      console.log('AutoMount: checking bookmarks:', mountedBookmarks)
+      
+      for (const [bookmarkName, shouldMount] of Object.entries(mountedBookmarks)) {
+        if (shouldMount) {
+          try {
+            const bookmark = bookmarkManager.getBookmark(bookmarkName)
+            if (bookmark) {
+              console.log('AutoMount: Mounting bookmark:', bookmarkName)
+              await this.mount(bookmark)
+            }
+          } catch (err) {
+            console.error('AutoMount: Failed to mount bookmark:', bookmarkName, err)
+          }
+        }
+      }
+    } catch (err) {
+      console.error('AutoMount: Failed to initialize:', err)
+    }
   }
 
   async mount(bookmark) {
@@ -40,7 +72,13 @@ class MountManager {
     console.log('MountManager: Executing mount command:', command)
     
     try {
-      this.processManager.create(`mount:${bookmark.$name}`, command)
+      await this.processManager.create(`mount:${bookmark.$name}`, command)
+      
+      // Сохраняем состояние монтирования
+      const mountedBookmarks = this.settings.get('mounted_bookmarks', {})
+      mountedBookmarks[bookmark.$name] = true
+      this.settings.set('mounted_bookmarks', mountedBookmarks)
+      
       dialogs.notification(`Монтирование ${bookmark.$name} запущено`)
       
       // Ждем немного и проверяем статус
@@ -62,6 +100,12 @@ class MountManager {
     try {
       this.processManager.kill(`mount:${bookmark.$name}`)
       this.mountPoints.delete(bookmark.$name)
+      
+      // Обновляем состояние монтирования
+      const mountedBookmarks = this.settings.get('mounted_bookmarks', {})
+      mountedBookmarks[bookmark.$name] = false
+      this.settings.set('mounted_bookmarks', mountedBookmarks)
+      
       dialogs.notification(`${bookmark.$name} отмонтирован`)
       this.notifyUpdateCallbacks()
     } catch (err) {

@@ -6,17 +6,19 @@ const chokidar = require('chokidar')
 const { PROVIDERS } = require('../../config/providers')
 const cacheManager = require('./cache-manager')
 const path = require('path')
+const settings = require('../settings')
 
 class BookmarkManager {
   constructor(commandExecutor) {
     this.commandExecutor = commandExecutor
     this.bookmarks = {}
     this.updateCallbacks = []
+    this.settings = settings
   }
 
-  init() {
+  async init() {
     this.watchConfigFile()
-    this.updateBookmarksCache()
+    return this.updateBookmarksCache()
   }
 
   watchConfigFile() {
@@ -48,7 +50,9 @@ class BookmarkManager {
 
       cacheManager.setBookmarks(bookmarks)
       this.notifyUpdateCallbacks()
+      return bookmarks
     } catch (err) {
+      console.error('Failed to update bookmarks cache:', err)
       throw new Error('Проблема с чтением списка закладок.')
     }
   }
@@ -173,6 +177,12 @@ class BookmarkManager {
   async deleteBookmark(bookmark) {
     const bookmarkData = this.getBookmark(bookmark)
     await this.commandExecutor.execute(['config', 'delete', bookmarkData.$name])
+    
+    // Удаляем информацию о монтировании при удалении закладки
+    const mountedBookmarks = this.settings.get('mounted_bookmarks', {})
+    delete mountedBookmarks[bookmarkData.$name]
+    this.settings.set('mounted_bookmarks', mountedBookmarks)
+    
     this.updateBookmarksCache()
   }
 

@@ -14,28 +14,38 @@ const dialogs = require('../dialogs')
 
 class RcloneService {
   constructor() {
+    // Логируем инициализацию сервисов
+    console.log('RcloneService: Initializing services...')
+
     this.commandExecutor = new CommandExecutor()
-    this.mountManager = new MountManager(this.commandExecutor)
     this.processManager = new ProcessManager()
     this.bookmarkManager = new BookmarkManager(this.commandExecutor)
+    this.mountManager = new MountManager(this.commandExecutor)
     this.syncManager = new SyncManager(this.commandExecutor, this.processManager)
     this.serveManager = new ServeManager(this.commandExecutor, this.processManager)
     this.terminalManager = new TerminalManager(this.commandExecutor)
     this.providerManager = new ProviderManager(this.commandExecutor)
-    
-    // Логируем инициализацию сервисов
-    console.log('RcloneService: Initializing services...')
 
     this.mountManager.onUpdate(() => {
       this.bookmarkManager.notifyUpdateCallbacks()
     })
   }
 
-  init() {
-    this.setupEnvironment()
-    this.commandExecutor.updateVersionCache()
-    this.providerManager.updateProvidersCache()
-    this.bookmarkManager.init()
+  async init() {
+    try {
+      this.setupEnvironment()
+      this.commandExecutor.updateVersionCache()
+      await this.providerManager.updateProvidersCache()
+      
+      // Ждем полной инициализации bookmarkManager
+      await this.bookmarkManager.init()
+      
+      // Теперь можно безопасно запускать автомонтирование
+      console.log('RcloneService: Starting automount...')
+      await this.mountManager.initAutoMount(this.bookmarkManager)
+    } catch (err) {
+      console.error('RcloneService: Init failed:', err)
+    }
   }
 
   setupEnvironment() {

@@ -48,7 +48,9 @@ const CONSTANTS = {
     rclone_serving_restic_enable: false,
     rclone_serving_webdav_enable: false,
     rclone_serving_username: '',
-    rclone_serving_password: ''
+    rclone_serving_password: '',
+    rclone_automount_enabled: true,
+    mounted_bookmarks: {}
   }
 }
 
