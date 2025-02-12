@@ -6,6 +6,16 @@ const path = require('path')
 const {app} = require('electron');
 const logFilePath = path.join(app.getPath('userData'), 'logs', 'logs.txt');
 
+const logDirectory = path.join(app.getPath('userData'), 'logs');
+
+const ensureLogDirectoryExists = async () => {
+  try {
+    await fs.mkdir(logDirectory, { recursive: true });
+  } catch (error) {
+    console.error('Ошибка при создании директории логов:', error);
+  }
+};
+
 /**
  * Объекты для сопоставления ошибок с сообщениями на русском
  *
@@ -53,6 +63,8 @@ const notificationFlags = {};
 const logToFile = async function (message) {
   const timestamp = new Date().toISOString();
   const logMessage = `[${timestamp}] ${typeof message === 'object' ? JSON.stringify(message) : message}\n`;
+
+  await ensureLogDirectoryExists();
 
   try {
     await fs.appendFile(logFilePath, logMessage, 'utf8');
@@ -103,11 +115,11 @@ const handleProcessOutput = async function (bookmarkName, lineInfo) {
         dialogs.notification(userMessage);
       }
 
-      await logToFile(lineInfo);
       return;
     }
   }
 
+  await logToFile(lineInfo);
   console.log('Rclone Watchdog lineInfo', lineInfo);
 };
 
