@@ -117,29 +117,57 @@ class BookmarkManager {
     }
   }
 
-  updateBookmark(name, values) {
+  async updateBookmark(name, values) {
     console.log('Updating bookmark:', { name, values })
+    
+    // Проверяем существование закладки
     const bookmark = this.getBookmark(name)
     if (!bookmark) {
-      throw new Error(`Bookmark ${name} not found`)
+      throw new Error(`Закладка ${name} не найдена`)
     }
 
-    // Сохраняем существующие специальные поля
-    const specialFields = {
-      $name: name,
-      type: bookmark.type,
-      _rclonetray_custom_args: bookmark._rclonetray_custom_args || '',
-      _rclonetray_local_path_map: bookmark._rclonetray_local_path_map || '',
-      _rclonetray_mount_drive: values._rclonetray_mount_drive || bookmark._rclonetray_mount_drive || ''
+    try {
+      // Сохраняем специальные поля, которые нужно сохранить
+      const specialFields = {
+        _rclonetray_custom_args: values._rclonetray_custom_args || bookmark._rclonetray_custom_args || '',
+        _rclonetray_local_path_map: values._rclonetray_local_path_map || bookmark._rclonetray_local_path_map || '',
+        _rclonetray_mount_drive: values._rclonetray_mount_drive || bookmark._rclonetray_mount_drive || '',
+        _rclonetray_remote_path: values._rclonetray_remote_path || bookmark._rclonetray_remote_path || ''
+      }
+
+      // Получаем все поля для обновления
+      const updateFields = {
+        ...values,
+        ...specialFields
+      }
+
+      // Удаляем поля, которые не нужно обновлять
+      delete updateFields.$name
+      delete updateFields.type
+
+      // Формируем команду обновления
+      const updateCommand = ['config', 'update', name]
+      Object.entries(updateFields).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          updateCommand.push(`${key}=${value}`)
+        }
+      })
+
+      // Выполняем обновление через rclone
+      await this.commandExecutor.execute(updateCommand)
+
+      // Обновляем кэш и уведомляем об изменениях
+      await this.updateBookmarksCache()
+
+      // Возвращаем обновленную закладку
+      const updatedBookmark = this.getBookmark(name)
+      console.log('Updated bookmark:', updatedBookmark)
+      return updatedBookmark
+
+    } catch (err) {
+      console.error('Failed to update bookmark:', err)
+      throw new Error(`Ошибка обновления закладки: ${err.message}`)
     }
-
-    // Обновляем закладку, сохраняя специальные поля
-    Object.assign(bookmark, values, specialFields)
-
-    console.log('Updated bookmark:', bookmark)
-    this.saveBookmarks()
-    this.notifyUpdateCallbacks()
-    return bookmark
   }
 
   async deleteBookmark(bookmark) {
