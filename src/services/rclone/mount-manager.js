@@ -239,15 +239,32 @@ class MountManager {
     console.log('MountManager: Opening mount point for bookmark:', bookmark)
     const mountpoint = this.mountPoints.get(bookmark.$name)
     console.log('MountManager: Mount point path:', mountpoint)
+    
     if (mountpoint && fs.existsSync(mountpoint)) {
       console.log('MountManager: Opening directory:', mountpoint)
-      if (process.platform === 'win32') {
-        shell.openPath(mountpoint).catch(error => {
-          console.error('Failed to open path:', error)
-          throw error
-        })
-      } else {
-        shell.openPath(mountpoint)
+      try {
+        if (process.platform === 'win32') {
+          // Используем команду start для Windows
+          const command = `start "" "${mountpoint}"`
+          console.log('MountManager: Executing command:', command)
+          
+          exec(command, (error, stdout, stderr) => {
+            if (error) {
+              console.error('Start command error:', error)
+              throw error
+            }
+            if (stderr) {
+              console.error('Start command stderr:', stderr)
+              throw new Error(stderr)
+            }
+            console.log('Directory opened successfully')
+          })
+        } else {
+          await shell.openPath(mountpoint)
+        }
+      } catch (error) {
+        console.error('Failed to open path:', error)
+        throw error
       }
     } else {
       console.error('MountManager: Mount point does not exist:', mountpoint)

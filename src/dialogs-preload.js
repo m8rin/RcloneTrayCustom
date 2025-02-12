@@ -559,3 +559,11 @@ window.renderBookmarkSettings = function (placeholder, providerName, values) {
   range.deleteContents()
   placeholder.appendChild(tabs)
 }
+
+window.$main.openLocal = async function(path) {
+  try {
+    await remoteElectron.shell.openPath(path)
+  } catch (err) {
+    errorBox(`Не удалось открыть путь: ${err.message}`)
+  }
+}

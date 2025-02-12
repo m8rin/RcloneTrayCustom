@@ -50,7 +50,7 @@ const bookmarkActionRouter = function (action, ...args) {
     rclone.unmount(this)
   } else if (action === 'open-mounted') {
     console.log('Tray: Opening mount point for bookmark:', this.$name)
-    rclone.openMountPoint(this.$name).catch(err => {
+    rclone.openMountPoint(this).catch(err => {
       console.error('Failed to open mount point:', err)
       dialogs.notification(`Не удалось открыть папку: ${err.message}`)
     })
