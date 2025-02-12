@@ -33,7 +33,6 @@
             $main.rclone
               .updateBookmark($main.getProps().$name, formValues)
               .then(() => {
-                dialogs.notification('Закладка успешно обновлена')
                 window.close()
               })
               .catch(errorBox)
