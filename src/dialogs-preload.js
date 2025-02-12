@@ -379,6 +379,30 @@ window.createOptionField = function (optionFieldDefinition, optionFieldNamespace
     }
   }
 
+  // Add drive letter selection for Windows
+  if (optionFieldDefinition.Name === '_rclonetray_mount_drive' && process.platform === 'win32') {
+    inputField.type = 'select'
+    // Generate available drive letters A-Z
+    const driveLetters = Array.from({length: 26}, (_, i) => String.fromCharCode(65 + i))
+    
+    // Add "Auto" option
+    let autoOption = document.createElement('option')
+    autoOption.value = ''
+    autoOption.innerText = 'Автоматически'
+    inputField.appendChild(autoOption)
+    
+    // Add drive letter options
+    driveLetters.forEach(letter => {
+      let option = document.createElement('option')
+      option.value = letter
+      option.innerText = `${letter}:`
+      if (value === letter) {
+        option.selected = 'selected'
+      }
+      inputField.appendChild(option)
+    })
+  }
+
   // Set examples
   if (optionFieldDefinition.Examples && optionFieldDefinition.$Type !== 'boolean' && optionFieldDefinition.$Type !== 'select') {
     let inputFieldOptions = document.createElement('datalist')

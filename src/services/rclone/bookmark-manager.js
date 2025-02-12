@@ -80,30 +80,40 @@ class BookmarkManager {
   }
 
   async addBookmark(type, name, values) {
+    // Validate bookmark name
     if (!/^([a-zA-Z0-9\-_]{1,32})$/.test(name)) {
       throw new Error('Недопустимое имя.\nИмя должно содержать от 1 до 32 символов и состоять только из букв, цифр и _')
     }
 
-    if (name in this.bookmarks) {
+    // Check if bookmark already exists
+    const bookmarks = this.getBookmarks()
+    if (name in bookmarks) {
       throw new Error(`Закладка "${name}" уже существует`)
     }
 
     try {
-      // Создаем начальную конфигурацию
-      const iniBlock = `\n[${name}]\nconfig_automatic = no\ntype = ${type}\n`
-      fs.appendFileSync(this.commandExecutor.configFile, iniBlock)
+      // Create initial config with type
+      await this.commandExecutor.execute(['config', 'create', name, type])
 
-      try {
-        await this.updateBookmarkFields(name, type, values)
-        this.updateBookmarksCache()
-        return true
-      } catch (err) {
-        // Откатываем изменения при ошибке
-        await this.commandExecutor.execute(['config', 'delete', name])
-        throw new Error('Не удается записать параметры закладок в конфигурацию.')
+      // Update bookmark fields if any values provided
+      if (Object.keys(values).length > 0) {
+        await this.commandExecutor.execute(['config', 'update', name].concat(
+          Object.entries(values).map(([key, value]) => `${key}=${value}`)
+        ))
       }
+
+      // Update cache and notify
+      await this.updateBookmarksCache()
+      return this.getBookmark(name)
+
     } catch (err) {
-      throw new Error('Не удается создать новую закладку')
+      // Clean up on failure
+      try {
+        await this.commandExecutor.execute(['config', 'delete', name])
+      } catch (deleteErr) {
+        console.error('Failed to clean up bookmark after error:', deleteErr)
+      }
+      throw err
     }
   }
 

@@ -81,12 +81,12 @@ class MountManager {
     const drives = await this.getAvailableDrives()
     console.log('Available drives:', drives)
     
-    // Если указана предпочтительная буква
+    // If preferred drive letter is set
     if (bookmark._rclonetray_mount_drive) {
       const preferredDrive = bookmark._rclonetray_mount_drive + ':'
       console.log('Preferred drive:', preferredDrive)
       
-      // Проверяем, не занята ли она
+      // Check if it's available
       if (!drives.includes(preferredDrive)) {
         return preferredDrive
       } else {
@@ -94,14 +94,16 @@ class MountManager {
       }
     }
     
-    // Если буква не указана или предпочтительная занята, найдем первую свободную
-    const availableLetters = this.getAvailableLetters(drives)
-    console.log('Available letters:', availableLetters)
-    
-    if (availableLetters.length === 0) {
-      throw new Error('Нет доступных букв для монтирования')
+    // Auto mode - find first available drive letter starting from Z
+    const letters = Array.from({length: 26}, (_, i) => String.fromCharCode(90 - i))
+    for (const letter of letters) {
+      const drive = letter + ':'
+      if (!drives.includes(drive)) {
+        return drive
+      }
     }
-    return availableLetters[0] + ':'
+    
+    throw new Error('Нет доступных букв дисков для монтирования')
   }
 
   getUnixMountPoint(bookmark) {
